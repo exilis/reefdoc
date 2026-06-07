@@ -1,7 +1,9 @@
 # Lightweight Markdown & Mermaid Viewer — Design
 
 **Date:** 2026-06-07
-**Status:** Approved design, pre-implementation
+**Status:** Implemented; revised to lazy/on-demand tree + watching (see "Scaling
+to large trees" below) so the viewer stays fast even when pointed at a directory
+with millions of entries (e.g. a monorepo root).
 
 ## Summary
 
@@ -80,22 +82,43 @@ symlink-out escapes).
 | Endpoint | Returns |
 |---|---|
 | `GET /` and assets | Embedded frontend (`index.html`, `app.js`, `app.css`) |
-| `GET /api/tree` | JSON of the directory tree — folders and `.md`/`.markdown` files only, sorted, directories first |
-| `GET /api/file?path=<rel>` | Raw markdown text of one file (`404` if missing, `400` if path escapes root) |
-| `GET /api/events` | SSE stream; emits change announcements (see below) |
+| `GET /api/tree?path=<rel>` | The **immediate children** of directory `<rel>` (default root) — folders and `.md`/`.markdown` files only, directories first, alphabetical. Non-recursive: directory entries carry no children; the browser fetches a level when a folder is expanded. **Noise directories** (`node_modules`, `.git`, dot-dirs) are omitted. `400` if `<rel>` escapes root. |
+| `GET /api/search?q=<query>` | Flat JSON list of markdown files whose **name** contains `<query>` (case-insensitive), found by walking from the root and skipping noise dirs. Capped (e.g. 200 results) with a `truncated` flag. Empty/blank query → empty result. |
+| `GET /api/file?path=<rel>` | Raw markdown text of one file (`404` if missing, `400` if path escapes root). |
+| `POST /api/watch` | Body `{"dirs":["<rel>",…]}` — the exact set of directories the browser currently cares about (parents of open files + expanded folders). The server reconciles inotify watches to exactly this set (the root is always watched), adding and removing as needed. Paths that escape root are ignored. `204` on success. |
+| `GET /api/events` | SSE stream; emits change announcements (see below). |
 
-### File watching
+### File watching (on-demand)
 
-- Recursive `fsnotify` watch over the root.
+The server does **not** watch the whole tree. It watches only the root plus the
+directory set most recently posted to `/api/watch`. This keeps the inotify
+footprint proportional to what the user has open, not to the size of the tree.
+
+- A watch is added when a folder is expanded or a file is opened, and removed
+  when that folder is collapsed or the tab is closed — the browser sends the
+  full desired set; the server diffs and applies it.
 - Raw filesystem events are debounced (~100ms) so one save becomes one
   announcement.
-- Edit to an existing file → `{"type":"change","path":"<rel>"}`.
-- Add / remove / rename → `{"type":"tree"}` (browser refetches the tree).
+- Edit to an existing markdown file → `{"type":"change","path":"<file rel>"}`.
+- Add / remove / rename inside a watched directory `D` →
+  `{"type":"tree","path":"<D rel>"}` — the browser reloads just that one
+  directory level, not the whole tree.
 
-### Tree delivery
+### Tree delivery (lazy)
 
-Computed fresh on each `GET /api/tree` (a personal doc folder is small; no
-caching needed). The frontend refetches it on `tree` events.
+Each `GET /api/tree?path=<rel>` lists a single directory level — no recursion,
+no full-tree walk, no caching needed. The browser builds the tree incrementally
+as the user expands folders, so opening the viewer is O(one directory) regardless
+of how deep or large the overall tree is.
+
+### Scaling to large trees
+
+The original design walked and watched the entire tree on every load, which is
+fine for a small docs folder but pathological for a monorepo root (hundreds of
+thousands of directories, exceeding the inotify watch limit, and a multi-second
+walk per page load). The lazy/on-demand model above removes both costs: load is
+one directory level; watches track only what is open; and noise directories are
+never descended into for listing or search.
 
 ## Frontend
 
@@ -117,10 +140,16 @@ A collapse control hides the entire left rail for distraction-free reading.
 
 ### Components (each one job)
 
-- **Tree navigator** — fetches `/api/tree`, renders collapsible folders/files.
-  A filter box does instant, case-insensitive *filename* filtering (matching
-  files stay, with their parent folders shown). Clicking a file opens it in a
-  tab.
+- **Tree navigator** — fetches the root level from `/api/tree`, renders
+  collapsible folders/files. Expanding a folder lazily fetches
+  `/api/tree?path=<dir>` (once; cached in the DOM) and renders its children;
+  collapsing hides them. Expanding/collapsing a folder or opening/closing a
+  file updates the desired watch set, which is POSTed (debounced) to
+  `/api/watch`. Clicking a file opens it in a tab.
+- **Filter / search** — typing in the filter box queries `/api/search?q=` (it
+  cannot filter the whole tree client-side because the tree is loaded lazily).
+  Results render as a flat clickable list in place of the tree; clearing the
+  box restores the tree. Matching is case-insensitive on file name.
 - **Tab manager** — owns open documents `{path, title, scrollPos}` and the
   active tab. Clicking a tree file already open just activates its tab. Tabs
   close via a close button or middle-click. The "is this path open?" query
@@ -156,12 +185,15 @@ browser's native auto-reconnect.
    - Background tab: mark with an "updated" dot; re-render (or lazy-render on
      next activation) without switching focus.
 
-**On a `tree` event:** refetch `/api/tree` and re-render the navigator. Any
-open tab whose file no longer exists is flagged (dimmed title + "missing"
-marker), not auto-closed.
+**On a `tree` event for directory `<D>`:** if `<D>`'s level is currently loaded
+in the navigator, refetch `/api/tree?path=<D>` and re-render just that level
+(preserving the expansion state of descendants where possible). Any open tab
+whose file no longer exists is flagged (dimmed title + "missing" marker), not
+auto-closed.
 
-**On SSE reconnect:** refetch the tree and re-render all open tabs once, to
-catch anything missed while disconnected.
+**On SSE reconnect:** reload the root level and any expanded levels, re-post the
+watch set, and re-render open tabs once, to catch anything missed while
+disconnected.
 
 Rule: *the server announces what changed; the browser updates only what is
 visible and affected.*
