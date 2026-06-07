@@ -1,0 +1,35 @@
+# reefdoc
+
+A lightweight, local-only **markdown & mermaid viewer**. One self-contained Go
+binary serves a browser UI with a file-tree navigator, tabs for multiple open
+documents, an auto table of contents, dark/light themes, and live reload when
+files change on disk.
+
+You edit markdown in your own editor; `reefdoc` is the preview.
+
+```bash
+reefdoc ./docs      # serve a folder (defaults to the current directory)
+# then open http://127.0.0.1:8080
+```
+
+## Features
+
+- File-tree navigator with instant filename filtering
+- Tabs for multiple open documents
+- GitHub-flavored markdown, code syntax highlighting, and mermaid diagrams
+- Auto table of contents from document headings
+- Dark / light theme (mermaid follows the theme)
+- Live reload: edit a file in any editor and the open tab updates
+
+## Status
+
+Pre-implementation. See [`docs/specs`](docs/specs) for the design and
+[`docs/plans`](docs/plans) for the implementation plan.
+
+## Architecture
+
+A Go single binary is a thin file API plus change announcer — it knows the
+filesystem, not markdown. The embedded vanilla-JS frontend renders everything
+client-side (markdown-it + highlight.js + mermaid via CDN). The two communicate
+through four HTTP endpoints; the server watches the root directory with
+`fsnotify` and pushes change events over SSE.

@@ -1,0 +1,11 @@
+# Go build output
+/reefdoc
+*.exe
+*.out
+
+# Frontend test harness (dev-only; never embedded)
+web/node_modules/
+web/package-lock.json
+
+# Editor / OS
+.DS_Store
