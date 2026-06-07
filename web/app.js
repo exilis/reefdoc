@@ -1,15 +1,16 @@
 import mermaid from 'mermaid';
 import { createRenderer } from './render.js';
 import { createTabStore, openTab, closeTab, isOpen, getTab } from './tabs.js';
-import { filterTree } from './tree.js';
 import { buildToc, slugify } from './toc.js';
 
 const render = createRenderer();
 const store = createTabStore();
-let fullTree = { name: 'root', path: '', isDir: true, children: [] };
+const expandedDirs = new Set();          // dir paths currently expanded (visible)
+const levelContainers = new Map();       // dir path -> its children container element
 
 const el = (id) => document.getElementById(id);
 const treeEl = el('tree');
+const searchEl = el('search');
 const tabbarEl = el('tabbar');
 const contentEl = el('content');
 const tocEl = el('toc');
@@ -26,27 +27,70 @@ function initMermaid() {
   });
 }
 
-// ---- Tree rendering ----
-async function loadTree() {
+function parentDir(path) {
+  const i = path.lastIndexOf('/');
+  return i === -1 ? '' : path.slice(0, i);
+}
+
+// ---- Watch set ----
+function desiredWatchDirs() {
+  const dirs = new Set(expandedDirs);
+  for (const t of store.tabs) dirs.add(parentDir(t.path));
+  return [...dirs];
+}
+
+function postWatches() {
+  fetch('/api/watch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dirs: desiredWatchDirs() }),
+  }).catch(() => {});
+}
+
+let watchTimer = null;
+function syncWatches() {
+  clearTimeout(watchTimer);
+  watchTimer = setTimeout(postWatches, 200);
+}
+
+// ---- Lazy tree ----
+async function fetchLevel(path) {
   try {
-    const res = await fetch('/api/tree');
-    fullTree = await res.json();
-    renderTree();
-  } catch (err) {
-    treeEl.innerHTML = '<p class="empty">Cannot reach the server.</p>';
+    const res = await fetch('/api/tree?path=' + encodeURIComponent(path));
+    if (!res.ok) return null;
+    return await res.json(); // {path, children}
+  } catch {
+    return null;
   }
 }
 
-function renderTree() {
-  const filtered = filterTree(fullTree, filterEl.value);
-  treeEl.innerHTML = '';
-  const children = filtered.children || [];
-  if (children.length === 0) {
-    treeEl.innerHTML = '<p class="empty">No markdown files found.</p>';
+async function loadRootTree() {
+  levelContainers.set('', treeEl);
+  const data = await fetchLevel('');
+  if (!data) {
+    treeEl.innerHTML = '<p class="empty">Cannot reach the server.</p>';
     return;
   }
-  for (const child of children) {
-    treeEl.appendChild(renderNode(child));
+  await renderChildrenInto(treeEl, data.children);
+}
+
+async function renderChildrenInto(container, children) {
+  container.innerHTML = '';
+  if (!children || children.length === 0) {
+    if (container === treeEl) {
+      container.innerHTML = '<p class="empty">No markdown files found.</p>';
+    }
+    return;
+  }
+  for (const node of children) {
+    const wrap = renderNode(node);
+    container.appendChild(wrap);
+    // re-expand a directory that was previously expanded (e.g. after reload)
+    if (node.isDir && expandedDirs.has(node.path)) {
+      const kids = wrap.querySelector('.tree-children');
+      const item = wrap.querySelector('.tree-item');
+      await expandDir(node.path, kids, item);
+    }
   }
 }
 
@@ -63,15 +107,97 @@ function renderNode(node) {
   if (node.isDir) {
     const kids = document.createElement('div');
     kids.className = 'tree-children';
-    for (const c of node.children || []) kids.appendChild(renderNode(c));
+    kids.style.display = 'none';
     wrap.appendChild(kids);
+    levelContainers.set(node.path, kids);
     item.addEventListener('click', () => {
-      kids.style.display = kids.style.display === 'none' ? '' : 'none';
+      if (expandedDirs.has(node.path)) collapseDir(node.path, kids, item);
+      else expandDir(node.path, kids, item);
     });
   } else {
     item.addEventListener('click', () => open(node.path, node.name));
   }
   return wrap;
+}
+
+async function expandDir(path, kids, item) {
+  expandedDirs.add(path);
+  item.classList.add('expanded');
+  const data = await fetchLevel(path);
+  if (data) await renderChildrenInto(kids, data.children);
+  kids.style.display = '';
+  syncWatches();
+}
+
+function collapseDir(path, kids, item) {
+  // collapsing a folder removes it AND any expanded descendants from the set,
+  // so the watch set mirrors exactly what is visible/open.
+  for (const d of [...expandedDirs]) {
+    if (d === path || d.startsWith(path + '/')) expandedDirs.delete(d);
+  }
+  item.classList.remove('expanded');
+  kids.style.display = 'none';
+  syncWatches();
+}
+
+// Reload just one directory level (on a tree SSE event for that dir).
+async function reloadLevel(path) {
+  const container = levelContainers.get(path);
+  if (!container) return;                       // not currently shown
+  if (path !== '' && !expandedDirs.has(path)) return; // collapsed
+  const data = await fetchLevel(path);
+  if (!data) return;
+  await renderChildrenInto(container, data.children);
+}
+
+// ---- Search ----
+let searchTimer = null;
+filterEl.addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  const q = filterEl.value.trim();
+  if (!q) { showTreeView(); return; }
+  searchTimer = setTimeout(() => runSearch(q), 200);
+});
+
+function showTreeView() {
+  treeEl.style.display = '';
+  searchEl.style.display = 'none';
+  searchEl.innerHTML = '';
+}
+
+async function runSearch(q) {
+  let data;
+  try {
+    const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+    if (!res.ok) return;
+    data = await res.json();
+  } catch {
+    return;
+  }
+  treeEl.style.display = 'none';
+  searchEl.style.display = '';
+  searchEl.innerHTML = '';
+  if (!data.results || data.results.length === 0) {
+    searchEl.innerHTML = '<p class="empty">No matches.</p>';
+    return;
+  }
+  for (const r of data.results) {
+    const item = document.createElement('div');
+    item.className = 'tree-item tree-file';
+    item.title = r.path;
+    const label = document.createElement('span');
+    label.className = 'tree-label';
+    label.textContent = r.path;
+    item.appendChild(label);
+    item.addEventListener('click', () => open(r.path, r.name));
+    searchEl.appendChild(item);
+  }
+  if (data.truncated) {
+    const more = document.createElement('p');
+    more.className = 'empty';
+    more.textContent = 'Showing first ' + data.results.length + ' — refine your search.';
+    searchEl.appendChild(more);
+  }
 }
 
 // ---- Tabs ----
@@ -100,6 +226,7 @@ function renderTabs() {
 async function open(path, title) {
   openTab(store, path, title); // idempotent: adds if new, always activates
   renderTabs();
+  syncWatches();
   await show(path);
 }
 
@@ -114,11 +241,15 @@ function activate(path) {
 function doClose(path) {
   closeTab(store, path);
   renderTabs();
+  syncWatches();
   if (store.active) show(store.active);
-  else { contentEl.innerHTML = '<p class="empty">Select a file from the tree.</p>'; tocEl.innerHTML = ''; }
+  else {
+    contentEl.innerHTML = '<p class="empty">Select a file from the tree.</p>';
+    tocEl.innerHTML = '';
+  }
 }
 
-// ---- Render a document into the content pane ----
+// ---- Render a document ----
 const MAX_BYTES = 5 * 1024 * 1024;
 let showSeq = 0;
 
@@ -136,7 +267,7 @@ async function show(path) {
     tocEl.innerHTML = '';
     return;
   }
-  if (seq !== showSeq) return; // a newer show() superseded this one
+  if (seq !== showSeq) return;
 
   if (res.status === 404) {
     tab.missing = true;
@@ -221,22 +352,20 @@ contentEl.addEventListener('scroll', () => {
   }
 });
 
-// ---- Live reload via SSE ----
-// When live reload is unavailable, show a manual-refresh affordance.
-// Core viewing still works without SSE.
+// ---- Live reload ----
 function setLiveReloadOffline(offline) {
-  let el = document.getElementById('lr-status');
+  let elx = document.getElementById('lr-status');
   if (offline) {
-    if (!el) {
-      el = document.createElement('button');
-      el.id = 'lr-status';
-      el.textContent = '⟲ Live reload offline — refresh';
-      el.title = 'Live updates are unavailable. Click to reload the current view.';
-      el.addEventListener('click', () => { loadTree(); if (store.active) show(store.active); });
-      document.body.appendChild(el);
+    if (!elx) {
+      elx = document.createElement('button');
+      elx.id = 'lr-status';
+      elx.textContent = '⟲ Live reload offline — refresh';
+      elx.title = 'Live updates are unavailable. Click to reload the current view.';
+      elx.addEventListener('click', () => { loadRootTree(); if (store.active) show(store.active); });
+      document.body.appendChild(elx);
     }
-  } else if (el) {
-    el.remove();
+  } else if (elx) {
+    elx.remove();
   }
 }
 
@@ -246,7 +375,7 @@ function connectSSE() {
   es.onmessage = (ev) => {
     const msg = JSON.parse(ev.data);
     if (msg.type === 'tree') {
-      loadTree();
+      reloadLevel(msg.path);
     } else if (msg.type === 'change') {
       const tab = getTab(store, msg.path);
       if (!tab) return;
@@ -257,18 +386,16 @@ function connectSSE() {
   es.onopen = () => {
     setLiveReloadOffline(false);
     if (firstOpen) { firstOpen = false; return; }
-    loadTree();
+    // reconnect: rebuild the tree (re-expanding open levels), re-post watches,
+    // and refresh the active document.
+    loadRootTree();
+    postWatches();
     if (store.active) show(store.active);
   };
-  es.onerror = () => {
-    // EventSource auto-retries transient errors; surface a manual-refresh
-    // affordance meanwhile. Cleared on the next successful onopen.
-    setLiveReloadOffline(true);
-  };
+  es.onerror = () => setLiveReloadOffline(true);
 }
 
 // ---- Controls ----
-filterEl.addEventListener('input', renderTree);
 el('theme-toggle').addEventListener('click', () => {
   const next = currentTheme() === 'dark' ? 'light' : 'dark';
   document.body.setAttribute('data-theme', next);
@@ -292,5 +419,5 @@ if (savedTheme) {
   }
 }
 initMermaid();
-loadTree();
+loadRootTree();
 connectSSE();

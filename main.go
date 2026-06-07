@@ -13,7 +13,7 @@ import (
 	"reefdoc/internal/server"
 )
 
-//go:embed web/index.html web/app.css web/app.js web/render.js web/tabs.js web/tree.js web/toc.js
+//go:embed web/index.html web/app.css web/app.js web/render.js web/tabs.js web/toc.js
 var webFS embed.FS
 
 func main() {
