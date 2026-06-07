@@ -4,8 +4,8 @@
 *.out
 
 # Frontend test harness (dev-only; never embedded)
-web/node_modules/
-web/package-lock.json
+/node_modules/
+/package-lock.json
 
 # Editor / OS
 .DS_Store
