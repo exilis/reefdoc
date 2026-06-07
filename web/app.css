@@ -47,8 +47,10 @@ body.sidebar-collapsed #tabbar { padding-left:40px; }
              color:var(--fg); border:1px solid var(--accent); border-radius:4px;
              padding:4px 10px; cursor:pointer; font-size:12px; box-shadow:0 1px 4px rgba(0,0,0,.25); }
 
-.tree-dir > .tree-label::before { content:"\25b8"; display:inline-block; width:1em; color:var(--muted); }
-.tree-dir.expanded > .tree-label::before { content:"\25be"; }
+.icon { flex:0 0 auto; display:inline-flex; align-items:center; margin-right:5px; }
+.icon svg { display:block; }
+.icon-dir { color:var(--accent); }
+.icon-file { color:var(--muted); }
 
 .sidebar-section { display:flex; flex-direction:column; overflow:hidden; min-height:24px; }
 #tree-section { flex:1 1 auto; }
