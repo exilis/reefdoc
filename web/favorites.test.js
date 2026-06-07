@@ -2,29 +2,40 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createFavorites, isFavorite, toggleFavorite, listFavorites } from './favorites.js';
 
-test('createFavorites seeds from an initial list', () => {
-  const s = createFavorites(['a.md', 'b.md']);
+test('createFavorites seeds from entries and migrates legacy strings', () => {
+  const s = createFavorites([{ path: 'a.md', isDir: false }, 'b.md', { path: 'docs', isDir: true }]);
   assert.equal(isFavorite(s, 'a.md'), true);
-  assert.equal(isFavorite(s, 'c.md'), false);
+  assert.equal(isFavorite(s, 'b.md'), true);
+  assert.equal(isFavorite(s, 'docs'), true);
+  assert.equal(isFavorite(s, 'nope'), false);
 });
 
 test('createFavorites with no argument is empty', () => {
+  assert.deepEqual(listFavorites(createFavorites()), []);
+});
+
+test('toggleFavorite stores isDir and returns the new state', () => {
   const s = createFavorites();
+  assert.equal(toggleFavorite(s, 'docs', true), true);
+  assert.deepEqual(listFavorites(s), [{ path: 'docs', isDir: true }]);
+  assert.equal(toggleFavorite(s, 'docs', true), false);
   assert.deepEqual(listFavorites(s), []);
 });
 
-test('toggleFavorite adds then removes, returning the new state', () => {
+test('toggleFavorite defaults isDir to false (file)', () => {
   const s = createFavorites();
-  assert.equal(toggleFavorite(s, 'x.md'), true);
-  assert.equal(isFavorite(s, 'x.md'), true);
-  assert.equal(toggleFavorite(s, 'x.md'), false);
-  assert.equal(isFavorite(s, 'x.md'), false);
+  toggleFavorite(s, 'a.md');
+  assert.deepEqual(listFavorites(s), [{ path: 'a.md', isDir: false }]);
 });
 
-test('listFavorites returns sorted paths', () => {
-  const s = createFavorites(['guide/b.md', 'a.md']);
-  toggleFavorite(s, 'guide/a.md');
-  assert.deepEqual(listFavorites(s), ['a.md', 'guide/a.md', 'guide/b.md']);
+test('listFavorites returns entries sorted by path', () => {
+  const s = createFavorites(['guide/b.md', 'a.md', { path: 'guide', isDir: true }]);
+  assert.deepEqual(listFavorites(s).map((e) => e.path), ['a.md', 'guide', 'guide/b.md']);
+});
+
+test('legacy string seed defaults to isDir:false', () => {
+  const s = createFavorites(['a.md']);
+  assert.deepEqual(listFavorites(s), [{ path: 'a.md', isDir: false }]);
 });
 
 test('seeding dedupes duplicate paths', () => {
