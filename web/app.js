@@ -50,7 +50,7 @@ function refreshStars() {
   });
 }
 
-// Find the tree item element (within the file tree, not search) for a path.
+// Find the tree item element (within the file tree) for a path.
 function findTreeItem(path) {
   for (const elx of document.querySelectorAll('#tree .tree-item[data-path]')) {
     if (elx.dataset.path === path) return elx;
@@ -66,10 +66,9 @@ async function expandPath(p) {
   if (kids && item) await expandDir(p, kids, item);
 }
 
-// Reveal a directory in the tree: exit search, unfold the Files section,
+// Reveal a directory in the tree: unfold the Files section,
 // expand each ancestor down to the target, scroll it into view, and flash it.
 async function revealDir(path) {
-  if (filterEl.value) { clearTimeout(searchTimer); filterEl.value = ''; showTreeView(); }
   const treeSection = el('tree-section');
   if (treeSection.classList.contains('folded')) {
     treeSection.classList.remove('folded');
@@ -112,11 +111,9 @@ function renderFavorites() {
   }
 }
 const treeEl = el('tree');
-const searchEl = el('search');
 const tabbarEl = el('tabbar');
 const contentEl = el('content');
 const tocEl = el('toc');
-const filterEl = el('filter');
 
 function currentTheme() {
   return document.body.getAttribute('data-theme');
@@ -256,58 +253,6 @@ async function reloadLevel(path) {
   const data = await fetchLevel(path);
   if (!data) return;
   await renderChildrenInto(container, data.children);
-}
-
-// ---- Search ----
-let searchTimer = null;
-filterEl.addEventListener('input', () => {
-  clearTimeout(searchTimer);
-  const q = filterEl.value.trim();
-  if (!q) { showTreeView(); return; }
-  searchTimer = setTimeout(() => runSearch(q), 200);
-});
-
-function showTreeView() {
-  document.getElementById('tree-section').style.display = '';
-  searchEl.style.display = 'none';
-  searchEl.innerHTML = '';
-}
-
-async function runSearch(q) {
-  let data;
-  try {
-    const res = await fetch('/api/search?q=' + encodeURIComponent(q));
-    if (!res.ok) return;
-    data = await res.json();
-  } catch {
-    return;
-  }
-  document.getElementById('tree-section').style.display = 'none';
-  searchEl.style.display = '';
-  searchEl.innerHTML = '';
-  if (!data.results || data.results.length === 0) {
-    searchEl.innerHTML = '<p class="empty">No matches.</p>';
-    return;
-  }
-  for (const r of data.results) {
-    const item = document.createElement('div');
-    item.className = 'tree-item tree-file';
-    item.title = r.path;
-    item.dataset.path = r.path;
-    const label = document.createElement('span');
-    label.className = 'tree-label';
-    label.textContent = r.path;
-    item.appendChild(label);
-    item.appendChild(makeStar(r.path, false));
-    item.addEventListener('click', () => open(r.path, r.name));
-    searchEl.appendChild(item);
-  }
-  if (data.truncated) {
-    const more = document.createElement('p');
-    more.className = 'empty';
-    more.textContent = 'Showing first ' + data.results.length + ' — refine your search.';
-    searchEl.appendChild(more);
-  }
 }
 
 // ---- Tabs ----

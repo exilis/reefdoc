@@ -18,8 +18,7 @@ self-contained Go binary, no external runtime to install.
 ## Goals
 
 - Render markdown + mermaid + code highlighting, faithfully and fast.
-- Browse a local folder of docs via a collapsible file tree with instant
-  filename filtering.
+- Browse a local folder of docs via a collapsible file tree.
 - Open multiple documents in tabs.
 - Live-reload an open document when its file changes on disk.
 - Auto table of contents and dark/light theme.
@@ -53,7 +52,7 @@ Knows about the filesystem; knows nothing about markdown.
 Knows about rendering; knows nothing about the filesystem beyond the paths the
 API hands it.
 
-- Tree navigator, tabs, TOC, filename filter, theme toggle.
+- Tree navigator, tabs, TOC, theme toggle.
 - Renders markdown + mermaid + code highlighting entirely client-side.
 - Subscribes to change announcements and re-renders affected open tabs.
 
@@ -83,7 +82,6 @@ symlink-out escapes).
 |---|---|
 | `GET /` and assets | Embedded frontend (`index.html`, `app.js`, `app.css`) |
 | `GET /api/tree?path=<rel>` | The **immediate children** of directory `<rel>` (default root) — folders and `.md`/`.markdown` files only, directories first, alphabetical. Non-recursive: directory entries carry no children; the browser fetches a level when a folder is expanded. **Noise directories** (`node_modules`, `.git`, dot-dirs) are omitted. `400` if `<rel>` escapes root. |
-| `GET /api/search?q=<query>` | Flat JSON list of markdown files whose **name** contains `<query>` (case-insensitive), found by walking from the root and skipping noise dirs. Capped (e.g. 200 results) with a `truncated` flag. Empty/blank query → empty result. |
 | `GET /api/file?path=<rel>` | Raw markdown text of one file (`404` if missing, `400` if path escapes root). |
 | `POST /api/watch` | Body `{"dirs":["<rel>",…]}` — the exact set of directories the browser currently cares about (parents of open files + expanded folders). The server reconciles inotify watches to exactly this set (the root is always watched), adding and removing as needed. Paths that escape root are ignored. `204` on success. |
 | `GET /api/events` | SSE stream; emits change announcements (see below). |
@@ -128,11 +126,11 @@ Two-zone shell. The TOC lives in the left sidebar, stacked below the tree.
 
 ```
 ┌────────────┬────────────────────────────────────┐
-│  Filter    │  Tab bar                            │
-│  Tree      ├────────────────────────────────────┤
-│  ────────  │                                     │
-│  TOC       │  Rendered document (active tab)     │
-│ (sidebar)  │                                     │
+│  Tree      │  Tab bar                            │
+│  ────────  ├────────────────────────────────────┤
+│  TOC       │                                     │
+│ (sidebar)  │  Rendered document (active tab)     │
+│            │                                     │
 └────────────┴────────────────────────────────────┘
 ```
 
@@ -146,10 +144,6 @@ A collapse control hides the entire left rail for distraction-free reading.
   collapsing hides them. Expanding/collapsing a folder or opening/closing a
   file updates the desired watch set, which is POSTed (debounced) to
   `/api/watch`. Clicking a file opens it in a tab.
-- **Filter / search** — typing in the filter box queries `/api/search?q=` (it
-  cannot filter the whole tree client-side because the tree is loaded lazily).
-  Results render as a flat clickable list in place of the tree; clearing the
-  box restores the tree. Matching is case-insensitive on file name.
 - **Tab manager** — owns open documents `{path, title, scrollPos}` and the
   active tab. Clicking a tree file already open just activates its tab. Tabs
   close via a close button or middle-click. The "is this path open?" query
@@ -236,7 +230,6 @@ visible and affected.*
   becoming `<pre class="mermaid">`. Rendering correctness concentrates here.
 - Tab manager logic (open / activate-existing / close / "is path open?") as
   plain functions, no DOM.
-- Tree filter function in isolation.
 
 ### End-to-end smoke test
 

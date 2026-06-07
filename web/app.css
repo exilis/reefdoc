@@ -5,12 +5,11 @@ body[data-theme="dark"] { --bg:#1e1e1e; --fg:#e6e6e6; --muted:#9aa; --border:#33
 body { margin:0; display:flex; height:100vh; font:14px/1.6 system-ui,sans-serif;
        color:var(--fg); background:var(--bg); }
 #sidebar { width:280px; flex:0 0 auto; display:flex; flex-direction:column; position:relative;
-           border-right:1px solid var(--border); background:var(--sidebar); overflow:hidden; }
+           border-right:1px solid var(--border); background:var(--sidebar); overflow:hidden;
+           padding-top:38px; }
 body.sidebar-collapsed #sidebar { display:none; }
 #sidebar-toggle { position:fixed; top:8px; left:8px; z-index:10; border:1px solid var(--border);
                   background:var(--bg); color:var(--fg); cursor:pointer; border-radius:4px; padding:2px 8px; }
-#filter { margin:40px 8px 8px; padding:6px 8px; border:1px solid var(--border);
-          border-radius:4px; background:var(--bg); color:var(--fg); }
 #theme-toggle { margin:8px; padding:6px; cursor:pointer; background:var(--bg);
                 color:var(--fg); border:1px solid var(--border); border-radius:4px; }
 
@@ -63,8 +62,7 @@ body.sidebar-collapsed #tabbar { padding-left:40px; }
 .fold-caret::before { content:"\25be"; display:inline-block; font-size:10px; }
 .sidebar-section.folded .fold-caret::before { content:"\25b8"; }
 .section-body { flex:1 1 auto; overflow:auto; }
-#tree, #search, #toc { padding:0 8px; }
-#search { flex:1 1 auto; overflow:auto; }
+#tree, #toc { padding:0 8px; }
 #toc { font-size:13px; }
 #vsplit { flex:0 0 auto; height:6px; cursor:row-resize; }
 #vsplit:hover { background:var(--border); }

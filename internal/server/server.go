@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-// Server exposes the lazy file tree, file contents, filename search, on-demand
-// watch registration, an SSE event stream, and the embedded frontend assets,
+// Server exposes the lazy file tree, file contents, on-demand watch
+// registration, an SSE event stream, and the embedded frontend assets,
 // all rooted at root.
 type Server struct {
 	root    string
@@ -24,13 +24,10 @@ func New(root string, broker *Broker, assets fs.FS, watcher *Watcher) *Server {
 	return &Server{root: root, broker: broker, assets: assets, watcher: watcher}
 }
 
-const searchLimit = 200
-
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/tree", s.handleTree)
 	mux.HandleFunc("/api/file", s.handleFile)
-	mux.HandleFunc("/api/search", s.handleSearch)
 	mux.HandleFunc("/api/watch", s.handleWatch)
 	mux.HandleFunc("/api/events", s.handleEvents)
 	mux.Handle("/", http.FileServer(http.FS(s.assets)))
@@ -78,21 +75,6 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	_, _ = w.Write(data)
-}
-
-// handleSearch returns markdown files whose name matches ?q=, found by walking
-// the tree (skipping noise dirs), capped at searchLimit.
-func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
-	results, truncated, err := SearchFiles(s.root, r.URL.Query().Get("q"), searchLimit)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if results == nil {
-		results = []SearchResult{}
-	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"results": results, "truncated": truncated})
 }
 
 // handleWatch reconciles the watcher's directory set to the posted list of
