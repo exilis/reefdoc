@@ -52,4 +52,4 @@ body.sidebar-collapsed #sidebar { display:none; }
 
 .tree-dir > .tree-label::before { content:"\25b8"; display:inline-block; width:1em; color:var(--muted); }
 .tree-dir.expanded > .tree-label::before { content:"\25be"; }
-#search { overflow:auto; padding:0 8px; }
+#search { flex:1 1 auto; overflow:auto; padding:0 8px; }

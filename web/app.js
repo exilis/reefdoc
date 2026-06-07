@@ -1,6 +1,6 @@
 import mermaid from 'mermaid';
 import { createRenderer } from './render.js';
-import { createTabStore, openTab, closeTab, isOpen, getTab } from './tabs.js';
+import { createTabStore, openTab, closeTab, getTab } from './tabs.js';
 import { buildToc, slugify } from './toc.js';
 
 const render = createRenderer();
@@ -124,7 +124,9 @@ async function expandDir(path, kids, item) {
   expandedDirs.add(path);
   item.classList.add('expanded');
   const data = await fetchLevel(path);
+  if (!expandedDirs.has(path)) return; // collapsed while the level was loading
   if (data) await renderChildrenInto(kids, data.children);
+  if (!expandedDirs.has(path)) return; // collapsed during child render
   kids.style.display = '';
   syncWatches();
 }
