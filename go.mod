@@ -1,4 +1,4 @@
-module reefdoc
+module github.com/exilis/reefdoc
 
 go 1.23
 

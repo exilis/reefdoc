@@ -10,15 +10,24 @@ import (
 	"os"
 	"path/filepath"
 
-	"reefdoc/internal/server"
+	"github.com/exilis/reefdoc/internal/server"
 )
 
 //go:embed web/index.html web/app.css web/app.js web/render.js web/tabs.js web/toc.js
 var webFS embed.FS
 
+// version is overridden at release time via -ldflags "-X main.version=<tag>".
+var version = "dev"
+
 func main() {
 	addr := flag.String("addr", "127.0.0.1:8080", "listen address")
+	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println("reefdoc", version)
+		return
+	}
 
 	root := "."
 	if flag.NArg() > 0 {
@@ -46,6 +55,6 @@ func main() {
 	defer watcher.Close()
 
 	srv := server.New(root, broker, assets, watcher)
-	fmt.Printf("reefdoc serving %s at http://%s\n", root, *addr)
+	fmt.Printf("reefdoc %s serving %s at http://%s\n", version, root, *addr)
 	log.Fatal(http.ListenAndServe(*addr, srv.Handler()))
 }
