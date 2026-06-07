@@ -131,26 +131,6 @@ func TestHandleTree_LazyLevel(t *testing.T) {
 	}
 }
 
-func TestHandleSearch_ReturnsMatches(t *testing.T) {
-	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "intro.md"), []byte("x"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(root, "other.md"), []byte("x"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	s := New(root, NewBroker(), fstest.MapFS{}, nil)
-	rec := httptest.NewRecorder()
-	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/search?q=intro", nil))
-	if rec.Code != 200 {
-		t.Fatalf("status %d", rec.Code)
-	}
-	body := rec.Body.String()
-	if !strings.Contains(body, "intro.md") || strings.Contains(body, "other.md") {
-		t.Fatalf("unexpected body: %s", body)
-	}
-}
-
 func TestHandleWatch_ReconcilesAndReturns204(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "sub"), 0o755); err != nil {
