@@ -41,3 +41,19 @@ test('closing the last tab clears active', () => {
   assert.equal(s.active, null);
   assert.equal(getTab(s, 'a.md'), null);
 });
+
+test('closing a non-active tab leaves active unchanged', () => {
+  const s = createTabStore();
+  openTab(s, 'a.md', 'a');
+  openTab(s, 'b.md', 'b'); // active = b.md
+  closeTab(s, 'a.md');
+  assert.equal(s.active, 'b.md');
+  assert.equal(s.tabs.length, 1);
+});
+
+test('closing a path that is not open is a no-op', () => {
+  const s = createTabStore();
+  closeTab(s, 'ghost.md');
+  assert.equal(s.tabs.length, 0);
+  assert.equal(s.active, null);
+});
