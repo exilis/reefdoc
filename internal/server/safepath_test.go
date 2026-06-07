@@ -32,3 +32,20 @@ func TestSafeJoin_RejectsAbsolute(t *testing.T) {
 		t.Error("expected error for absolute path, got nil")
 	}
 }
+
+func TestSafeJoin_EmptyAndDotResolveToRoot(t *testing.T) {
+	root := t.TempDir()
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, rel := range []string{"", "."} {
+		got, err := SafeJoin(root, rel)
+		if err != nil {
+			t.Fatalf("rel %q: unexpected error: %v", rel, err)
+		}
+		if got != absRoot {
+			t.Fatalf("rel %q: got %q want %q", rel, got, absRoot)
+		}
+	}
+}
