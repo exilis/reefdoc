@@ -28,3 +28,8 @@ test('no match yields an empty root', () => {
   const out = filterTree(tree, 'zzz');
   assert.equal(out.children.length, 0);
 });
+
+test('directory-name matches do not keep the dir (files only)', () => {
+  const out = filterTree(tree, 'guide');
+  assert.equal(out.children.length, 0);
+});
