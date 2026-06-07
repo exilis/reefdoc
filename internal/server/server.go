@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"net/http"
 	"os"
@@ -9,35 +10,51 @@ import (
 	"strings"
 )
 
-// Server exposes the file tree, file contents, an SSE event stream, and the
-// embedded frontend assets, all rooted at root.
+// Server exposes the lazy file tree, file contents, filename search, on-demand
+// watch registration, an SSE event stream, and the embedded frontend assets,
+// all rooted at root.
 type Server struct {
-	root   string
-	broker *Broker
-	assets fs.FS
+	root    string
+	broker  *Broker
+	assets  fs.FS
+	watcher *Watcher
 }
 
-func New(root string, broker *Broker, assets fs.FS) *Server {
-	return &Server{root: root, broker: broker, assets: assets}
+func New(root string, broker *Broker, assets fs.FS, watcher *Watcher) *Server {
+	return &Server{root: root, broker: broker, assets: assets, watcher: watcher}
 }
+
+const searchLimit = 200
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/tree", s.handleTree)
 	mux.HandleFunc("/api/file", s.handleFile)
+	mux.HandleFunc("/api/search", s.handleSearch)
+	mux.HandleFunc("/api/watch", s.handleWatch)
 	mux.HandleFunc("/api/events", s.handleEvents)
 	mux.Handle("/", http.FileServer(http.FS(s.assets)))
 	return mux
 }
 
+// handleTree lists one directory level (immediate children of ?path=, root by
+// default). Non-recursive — the browser fetches deeper levels on demand.
 func (s *Server) handleTree(w http.ResponseWriter, r *http.Request) {
-	node, err := BuildTree(s.root)
+	rel := r.URL.Query().Get("path")
+	nodes, err := ListDir(s.root, rel)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		if errors.Is(err, ErrUnsafePath) {
+			http.Error(w, "bad path", http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
+	if nodes == nil {
+		nodes = []*Node{}
+	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(node)
+	_ = json.NewEncoder(w).Encode(map[string]any{"path": rel, "children": nodes})
 }
 
 func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +63,6 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad path", http.StatusBadRequest)
 		return
 	}
-	// Reject symlinks that point outside the root.
 	if resolved, err := filepath.EvalSymlinks(abs); err == nil {
 		absRoot, _ := filepath.Abs(s.root)
 		if resolved != absRoot && !strings.HasPrefix(resolved, absRoot+string(filepath.Separator)) {
@@ -62,6 +78,41 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	_, _ = w.Write(data)
+}
+
+// handleSearch returns markdown files whose name matches ?q=, found by walking
+// the tree (skipping noise dirs), capped at searchLimit.
+func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
+	results, truncated, err := SearchFiles(s.root, r.URL.Query().Get("q"), searchLimit)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if results == nil {
+		results = []SearchResult{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{"results": results, "truncated": truncated})
+}
+
+// handleWatch reconciles the watcher's directory set to the posted list of
+// relative directories.
+func (s *Server) handleWatch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		Dirs []string `json:"dirs"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if s.watcher != nil {
+		s.watcher.SetWatches(body.Dirs)
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {

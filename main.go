@@ -45,7 +45,7 @@ func main() {
 	go watcher.Run()
 	defer watcher.Close()
 
-	srv := server.New(root, broker, assets)
+	srv := server.New(root, broker, assets, watcher)
 	fmt.Printf("reefdoc serving %s at http://%s\n", root, *addr)
 	log.Fatal(http.ListenAndServe(*addr, srv.Handler()))
 }

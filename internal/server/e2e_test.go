@@ -17,7 +17,7 @@ func TestE2E_EndpointsOverHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 	assets := fstest.MapFS{"index.html": {Data: []byte("<p>app</p>")}}
-	srv := httptest.NewServer(New(root, NewBroker(), assets).Handler())
+	srv := httptest.NewServer(New(root, NewBroker(), assets, nil).Handler())
 	defer srv.Close()
 
 	cases := []struct {
