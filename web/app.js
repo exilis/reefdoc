@@ -11,6 +11,21 @@ const levelContainers = new Map();       // dir path -> its children container e
 
 const el = (id) => document.getElementById(id);
 
+// ---- Directory / file SVG icons ----
+const ICON_FOLDER =
+  '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M1.5 3.25c0-.69.56-1.25 1.25-1.25h2.69c.33 0 .65.13.88.37L7.5 3.5h6.25c.69 0 1.25.56 1.25 1.25v7.5c0 .69-.56 1.25-1.25 1.25H2.75c-.69 0-1.25-.56-1.25-1.25z"/></svg>';
+const ICON_FOLDER_OPEN =
+  '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M1.5 3.25c0-.69.56-1.25 1.25-1.25h2.69c.33 0 .65.13.88.37L7.5 3.5h6.25c.69 0 1.25.56 1.25 1.25v.4H4.6c-.74 0-1.39.5-1.57 1.22L1.5 11.3z"/><path fill="currentColor" d="M3.05 7.16A1.25 1.25 0 0 1 4.26 6.2h10.6c.42 0 .72.4.61.81l-1.25 4.55c-.15.54-.64.92-1.2.92H2.2c-.42 0-.72-.4-.61-.81z"/></svg>';
+const ICON_FILE =
+  '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.19c.2 0 .39.08.53.22l3.06 3.06c.14.14.22.33.22.53v8.44c0 .69-.56 1.25-1.25 1.25H4c-.69 0-1.25-.56-1.25-1.25V2.75C2.75 2.06 3.31 1.5 4 1.5z"/></svg>';
+
+function makeIcon(isDir, open) {
+  const span = document.createElement('span');
+  span.className = 'icon ' + (isDir ? 'icon-dir' : 'icon-file');
+  span.innerHTML = isDir ? (open ? ICON_FOLDER_OPEN : ICON_FOLDER) : ICON_FILE;
+  return span;
+}
+
 const FAV_KEY = 'reefdoc-favorites';
 const favorites = createFavorites(loadFavorites());
 
@@ -101,9 +116,10 @@ function renderFavorites() {
     item.className = 'tree-item tree-file';
     item.dataset.path = path;
     item.title = path;
+    item.appendChild(makeIcon(isDir, false));
     const label = document.createElement('span');
     label.className = 'tree-label';
-    label.textContent = isDir ? base + '/' : base;
+    label.textContent = base;
     item.appendChild(label);
     item.appendChild(makeStar(path, isDir));
     item.addEventListener('click', () => (isDir ? revealDir(path) : open(path, base)));
@@ -197,6 +213,7 @@ function renderNode(node) {
   const wrap = document.createElement('div');
   const item = document.createElement('div');
   item.className = 'tree-item ' + (node.isDir ? 'tree-dir' : 'tree-file');
+  item.appendChild(makeIcon(node.isDir, node.isDir && expandedDirs.has(node.path)));
   const label = document.createElement('span');
   label.className = 'tree-label';
   label.textContent = node.name;
@@ -226,6 +243,8 @@ function renderNode(node) {
 async function expandDir(path, kids, item) {
   expandedDirs.add(path);
   item.classList.add('expanded');
+  const ic = item.querySelector('.icon');
+  if (ic) ic.innerHTML = ICON_FOLDER_OPEN;
   const data = await fetchLevel(path);
   if (!expandedDirs.has(path)) return; // collapsed while the level was loading
   if (data) await renderChildrenInto(kids, data.children);
@@ -241,6 +260,8 @@ function collapseDir(path, kids, item) {
     if (d === path || d.startsWith(path + '/')) expandedDirs.delete(d);
   }
   item.classList.remove('expanded');
+  const ic = item.querySelector('.icon');
+  if (ic) ic.innerHTML = ICON_FOLDER;
   kids.style.display = 'none';
   syncWatches();
 }
