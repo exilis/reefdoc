@@ -69,7 +69,7 @@ async function expandPath(p) {
 // Reveal a directory in the tree: exit search, unfold the Files section,
 // expand each ancestor down to the target, scroll it into view, and flash it.
 async function revealDir(path) {
-  if (filterEl.value) { filterEl.value = ''; showTreeView(); }
+  if (filterEl.value) { clearTimeout(searchTimer); filterEl.value = ''; showTreeView(); }
   const treeSection = el('tree-section');
   if (treeSection.classList.contains('folded')) {
     treeSection.classList.remove('folded');
