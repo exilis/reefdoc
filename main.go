@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"reefdoc/internal/server"
 )
 
 //go:embed all:web
@@ -30,9 +32,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.FS(assets)))
+	broker := server.NewBroker()
+	watcher, err := server.NewWatcher(root, broker)
+	if err != nil {
+		log.Fatal(err)
+	}
+	go watcher.Run()
+	defer watcher.Close()
 
+	srv := server.New(root, broker, assets)
 	fmt.Printf("reefdoc serving %s at http://%s\n", root, *addr)
-	log.Fatal(http.ListenAndServe(*addr, mux))
+	log.Fatal(http.ListenAndServe(*addr, srv.Handler()))
 }
