@@ -179,3 +179,51 @@ func TestHandleWatch_GetIs405(t *testing.T) {
 		t.Fatalf("status %d, want 405", rec.Code)
 	}
 }
+
+func TestHandleWatch_BadJSONIs400(t *testing.T) {
+	s := New(t.TempDir(), NewBroker(), fstest.MapFS{}, nil)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/watch", strings.NewReader("not json"))
+	s.Handler().ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status %d, want 400", rec.Code)
+	}
+}
+
+func TestHandleTree_MissingDirIs404(t *testing.T) {
+	s := New(t.TempDir(), NewBroker(), fstest.MapFS{}, nil)
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/tree?path=nope", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status %d, want 404", rec.Code)
+	}
+}
+
+func TestHandleTree_EmptyDirReturnsEmptyArray(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "empty"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	s := New(root, NewBroker(), fstest.MapFS{}, nil)
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/tree?path=empty", nil))
+	if rec.Code != 200 {
+		t.Fatalf("status %d", rec.Code)
+	}
+	// children must serialize as [] (not null)
+	var resp struct {
+		Children []any `json:"children"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Children == nil {
+		t.Fatal("children was null; want empty array []")
+	}
+	if len(resp.Children) != 0 {
+		t.Fatalf("expected 0 children, got %d", len(resp.Children))
+	}
+	if !strings.Contains(rec.Body.String(), `"children":[]`) {
+		t.Fatalf("expected literal []; body: %s", rec.Body.String())
+	}
+}
