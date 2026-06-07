@@ -28,9 +28,13 @@ function initMermaid() {
 
 // ---- Tree rendering ----
 async function loadTree() {
-  const res = await fetch('/api/tree');
-  fullTree = await res.json();
-  renderTree();
+  try {
+    const res = await fetch('/api/tree');
+    fullTree = await res.json();
+    renderTree();
+  } catch (err) {
+    treeEl.innerHTML = '<p class="empty">Cannot reach the server.</p>';
+  }
 }
 
 function renderTree() {
@@ -89,8 +93,7 @@ function renderTabs() {
 }
 
 async function open(path, title) {
-  if (!isOpen(store, path)) openTab(store, path, title);
-  else openTab(store, path, title); // just activates
+  openTab(store, path, title); // idempotent: adds if new, always activates
   renderTabs();
   await show(path);
 }
@@ -112,11 +115,24 @@ function doClose(path) {
 
 // ---- Render a document into the content pane ----
 const MAX_BYTES = 5 * 1024 * 1024;
+let showSeq = 0;
 
 async function show(path) {
   const tab = getTab(store, path);
   if (!tab) return;
-  const res = await fetch('/api/file?path=' + encodeURIComponent(path));
+  const seq = ++showSeq;
+
+  let res;
+  try {
+    res = await fetch('/api/file?path=' + encodeURIComponent(path));
+  } catch (err) {
+    if (seq !== showSeq) return;
+    contentEl.innerHTML = '<p class="empty">Cannot reach the server.</p>';
+    tocEl.innerHTML = '';
+    return;
+  }
+  if (seq !== showSeq) return; // a newer show() superseded this one
+
   if (res.status === 404) {
     tab.missing = true;
     renderTabs();
@@ -126,6 +142,7 @@ async function show(path) {
   }
   tab.missing = false;
   const text = await res.text();
+  if (seq !== showSeq) return;
   if (text.length > MAX_BYTES) {
     contentEl.innerHTML = '<p class="empty">File too large to preview.</p>';
     tocEl.innerHTML = '';
@@ -136,12 +153,18 @@ async function show(path) {
   assignHeadingIds();
   renderToc();
   await runMermaid();
+  if (seq !== showSeq) return;
   restoreScroll(tab);
 }
 
 function assignHeadingIds() {
+  const seen = new Set();
   contentEl.querySelectorAll('h1,h2,h3').forEach((h) => {
-    if (!h.id) h.id = slugify(h.textContent);
+    const base = h.id || slugify(h.textContent);
+    let id = base, n = 2;
+    while (seen.has(id)) id = base + '-' + n++;
+    seen.add(id);
+    h.id = id;
   });
 }
 
@@ -195,6 +218,7 @@ contentEl.addEventListener('scroll', () => {
 
 // ---- Live reload via SSE ----
 function connectSSE() {
+  let firstOpen = true;
   const es = new EventSource('/api/events');
   es.onmessage = (ev) => {
     const msg = JSON.parse(ev.data);
@@ -207,8 +231,13 @@ function connectSSE() {
       else { tab.updated = true; renderTabs(); }
     }
   };
-  // On reconnect, refresh everything once.
-  es.onopen = () => { loadTree(); if (store.active) show(store.active); };
+  // The first onopen is the initial connect (boot already loaded the tree).
+  // Only refresh on a genuine reconnect to catch anything missed while down.
+  es.onopen = () => {
+    if (firstOpen) { firstOpen = false; return; }
+    loadTree();
+    if (store.active) show(store.active);
+  };
 }
 
 // ---- Controls ----
