@@ -24,7 +24,8 @@ body.sidebar-collapsed #sidebar { display:none; }
 .tree-item.hidden { display:none; }
 
 #main { flex:1 1 auto; display:flex; flex-direction:column; overflow:hidden; }
-#tabbar { display:flex; border-bottom:1px solid var(--border); overflow-x:auto; }
+#tabbar { display:flex; flex:0 0 auto; align-items:stretch; border-bottom:1px solid var(--border); overflow-x:auto; scrollbar-width:thin; min-height:37px; }
+body.sidebar-collapsed #tabbar { padding-left:40px; }
 .tab { display:flex; align-items:center; gap:6px; padding:6px 10px; cursor:pointer;
        border-right:1px solid var(--border); white-space:nowrap; color:var(--muted); }
 .tab.active { color:var(--fg); border-bottom:2px solid var(--accent); }
