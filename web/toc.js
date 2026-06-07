@@ -1,9 +1,11 @@
 // slugify turns heading text into a DOM id used for in-page anchors.
+// Unicode-aware: keeps letters/numbers from any script (e.g. Japanese,
+// accented Latin); strips punctuation; collapses whitespace runs to a dash.
 export function slugify(text) {
   return text
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, '')
+    .replace(/[^\p{L}\p{N}\s-]/gu, '')
     .replace(/\s+/g, '-');
 }
 
