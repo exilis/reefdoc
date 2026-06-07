@@ -22,11 +22,22 @@
   <button id="sidebar-toggle" title="Toggle sidebar">☰</button>
   <aside id="sidebar">
     <input id="filter" type="search" placeholder="Filter files…" autocomplete="off">
-    <nav id="tree"></nav>
-    <nav id="search" style="display:none"></nav>
-    <div id="toc-divider"></div>
-    <nav id="toc"></nav>
+    <section id="tree-section" class="sidebar-section">
+      <div class="section-header" data-target="tree-section"><span class="fold-caret"></span>Files</div>
+      <div class="section-body">
+        <nav id="tree"></nav>
+        <nav id="search" style="display:none"></nav>
+      </div>
+    </section>
+    <div id="vsplit" title="Drag to resize"></div>
+    <section id="toc-section" class="sidebar-section">
+      <div class="section-header" data-target="toc-section"><span class="fold-caret"></span>Outline</div>
+      <div class="section-body">
+        <nav id="toc"></nav>
+      </div>
+    </section>
     <button id="theme-toggle">Toggle theme</button>
+    <div id="sidebar-resize" title="Drag to resize width"></div>
   </aside>
   <main id="main">
     <div id="tabbar"></div>

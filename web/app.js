@@ -397,6 +397,61 @@ function connectSSE() {
   es.onerror = () => setLiveReloadOffline(true);
 }
 
+// ---- Sidebar: foldable sections + drag-resize (persisted) ----
+function makeDrag(handle, getBase, apply) {
+  if (!handle) return;
+  handle.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    const sx = e.clientX, sy = e.clientY, base = getBase();
+    const move = (ev) => apply(base, ev.clientX - sx, ev.clientY - sy);
+    const up = () => {
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+  });
+}
+
+function initSidebarLayout() {
+  const sidebar = el('sidebar');
+  const tocSection = el('toc-section');
+
+  // restore persisted sizes + fold state
+  const w = localStorage.getItem('reefdoc-sidebar-w');
+  if (w) sidebar.style.width = w + 'px';
+  const h = localStorage.getItem('reefdoc-toc-h');
+  if (h) tocSection.style.flex = '0 0 ' + h + 'px';
+  for (const id of ['tree-section', 'toc-section']) {
+    if (localStorage.getItem('reefdoc-fold-' + id) === '1') el(id).classList.add('folded');
+  }
+
+  // fold toggles
+  document.querySelectorAll('.section-header').forEach((header) => {
+    header.addEventListener('click', () => {
+      const section = el(header.dataset.target);
+      section.classList.toggle('folded');
+      localStorage.setItem('reefdoc-fold-' + header.dataset.target,
+        section.classList.contains('folded') ? '1' : '0');
+    });
+  });
+
+  // resize the tree/TOC split (drag #vsplit; dragging up grows the TOC)
+  makeDrag(el('vsplit'), () => tocSection.offsetHeight, (base, dx, dy) => {
+    const nh = Math.max(24, Math.min(sidebar.clientHeight - 120, base - dy));
+    tocSection.style.flex = '0 0 ' + nh + 'px';
+    localStorage.setItem('reefdoc-toc-h', Math.round(nh));
+  });
+
+  // resize the sidebar width (drag #sidebar-resize)
+  makeDrag(el('sidebar-resize'), () => sidebar.offsetWidth, (base, dx) => {
+    const nw = Math.max(150, Math.min(600, base + dx));
+    sidebar.style.width = nw + 'px';
+    localStorage.setItem('reefdoc-sidebar-w', Math.round(nw));
+  });
+}
+
 // ---- Controls ----
 el('theme-toggle').addEventListener('click', () => {
   const next = currentTheme() === 'dark' ? 'light' : 'dark';
@@ -421,5 +476,6 @@ if (savedTheme) {
   }
 }
 initMermaid();
+initSidebarLayout();
 loadRootTree();
 connectSSE();
