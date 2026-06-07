@@ -55,4 +55,4 @@ through a small HTTP API; the server watches directories on demand with
 
 ## License
 
-[MIT](LICENSE) © 2026 Yuki Hayashi
+[MIT](LICENSE) © 2026 exilis
