@@ -19,6 +19,7 @@ test('renders task lists', () => {
 test('highlights fenced code', () => {
   const html = render('```js\nconst x = 1;\n```');
   assert.match(html, /class="hljs"/);
+  assert.match(html, /hljs-keyword/); // confirms hljs actually ran, not just the wrapper
 });
 
 test('mermaid blocks become <pre class="mermaid">', () => {
@@ -30,4 +31,9 @@ test('mermaid blocks become <pre class="mermaid">', () => {
 test('mermaid content is escaped, not executed as html', () => {
   const html = render('```mermaid\n<script>x</script>\n```');
   assert.match(html, /&lt;script&gt;/);
+});
+
+test('strips raw html in markdown body (html:false)', () => {
+  const html = render('<script>alert(1)</script>\n\nhello');
+  assert.doesNotMatch(html, /<script>/);
 });
