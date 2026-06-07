@@ -20,22 +20,22 @@ function loadFavorites() {
 function saveFavorites() {
   localStorage.setItem(FAV_KEY, JSON.stringify(listFavorites(favorites)));
 }
-function toggleFav(path) {
-  toggleFavorite(favorites, path);
+function toggleFav(path, isDir) {
+  toggleFavorite(favorites, path, isDir);
   saveFavorites();
   renderFavorites();
   refreshStars();
 }
 
-// A clickable ☆/★ control bound to a file path. Click toggles favorite and
-// does NOT open the file.
-function makeStar(path) {
-  const star = document.createElement('span');
+// A clickable ☆/★ control bound to a file or directory path. Click toggles
+// favorite and does NOT open/expand anything.
+function makeStar(path, isDir) {
   const on = isFavorite(favorites, path);
+  const star = document.createElement('span');
   star.className = 'star' + (on ? ' on' : '');
   star.textContent = on ? '★' : '☆';
   star.title = 'Toggle favorite';
-  star.addEventListener('click', (e) => { e.stopPropagation(); toggleFav(path); });
+  star.addEventListener('click', (e) => { e.stopPropagation(); toggleFav(path, isDir); });
   return star;
 }
 
@@ -50,26 +50,64 @@ function refreshStars() {
   });
 }
 
+// Find the tree item element (within the file tree, not search) for a path.
+function findTreeItem(path) {
+  for (const elx of document.querySelectorAll('#tree .tree-item[data-path]')) {
+    if (elx.dataset.path === path) return elx;
+  }
+  return null;
+}
+
+// Expand one already-rendered directory (no-op if already expanded or absent).
+async function expandPath(p) {
+  if (expandedDirs.has(p)) return;
+  const kids = levelContainers.get(p);
+  const item = findTreeItem(p);
+  if (kids && item) await expandDir(p, kids, item);
+}
+
+// Reveal a directory in the tree: exit search, unfold the Files section,
+// expand each ancestor down to the target, scroll it into view, and flash it.
+async function revealDir(path) {
+  if (filterEl.value) { filterEl.value = ''; showTreeView(); }
+  const treeSection = el('tree-section');
+  if (treeSection.classList.contains('folded')) {
+    treeSection.classList.remove('folded');
+    localStorage.setItem('reefdoc-fold-tree-section', '0');
+  }
+  let prefix = '';
+  for (const seg of path.split('/')) {
+    prefix = prefix ? prefix + '/' + seg : seg;
+    await expandPath(prefix);
+  }
+  const item = findTreeItem(path);
+  if (item) {
+    item.scrollIntoView({ block: 'center' });
+    item.classList.add('flash');
+    setTimeout(() => item.classList.remove('flash'), 900);
+  }
+}
+
 function renderFavorites() {
   const favEl = el('favorites');
   const favs = listFavorites(favorites);
   favEl.innerHTML = '';
   if (favs.length === 0) {
-    favEl.innerHTML = '<p class="empty">No favorites yet — click ☆ next to a file.</p>';
+    favEl.innerHTML = '<p class="empty">No favorites yet — click ☆ next to a file or folder.</p>';
     return;
   }
-  for (const path of favs) {
-    const name = path.slice(path.lastIndexOf('/') + 1);
+  for (const { path, isDir } of favs) {
+    const base = path.slice(path.lastIndexOf('/') + 1) || path;
     const item = document.createElement('div');
     item.className = 'tree-item tree-file';
     item.dataset.path = path;
     item.title = path;
     const label = document.createElement('span');
     label.className = 'tree-label';
-    label.textContent = name;
+    label.textContent = isDir ? base + '/' : base;
     item.appendChild(label);
-    item.appendChild(makeStar(path));
-    item.addEventListener('click', () => open(path, name));
+    item.appendChild(makeStar(path, isDir));
+    item.addEventListener('click', () => (isDir ? revealDir(path) : open(path, base)));
     favEl.appendChild(item);
   }
 }
@@ -178,9 +216,11 @@ function renderNode(node) {
       if (expandedDirs.has(node.path)) collapseDir(node.path, kids, item);
       else expandDir(node.path, kids, item);
     });
+    item.dataset.path = node.path;
+    item.appendChild(makeStar(node.path, true));
   } else {
     item.dataset.path = node.path;
-    item.appendChild(makeStar(node.path));
+    item.appendChild(makeStar(node.path, false));
     item.addEventListener('click', () => open(node.path, node.name));
   }
   return wrap;
@@ -258,7 +298,7 @@ async function runSearch(q) {
     label.className = 'tree-label';
     label.textContent = r.path;
     item.appendChild(label);
-    item.appendChild(makeStar(r.path));
+    item.appendChild(makeStar(r.path, false));
     item.addEventListener('click', () => open(r.path, r.name));
     searchEl.appendChild(item);
   }

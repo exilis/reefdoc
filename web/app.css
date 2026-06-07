@@ -78,3 +78,6 @@ body.sidebar-collapsed #tabbar { padding-left:40px; }
 .star:hover { color:var(--accent); }
 #fav-section { flex:0 0 auto; max-height:30%; }
 #favorites { padding:0 8px; }
+
+@keyframes reef-flash { from { background:var(--accent); } to { background:transparent; } }
+.tree-item.flash { animation: reef-flash 0.9s ease-out; }
