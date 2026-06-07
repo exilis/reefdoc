@@ -2,6 +2,7 @@ import mermaid from 'mermaid';
 import { createRenderer } from './render.js';
 import { createTabStore, openTab, closeTab, getTab } from './tabs.js';
 import { buildToc, slugify } from './toc.js';
+import { createFavorites, isFavorite, toggleFavorite, listFavorites } from './favorites.js';
 
 const render = createRenderer();
 const store = createTabStore();
@@ -9,6 +10,69 @@ const expandedDirs = new Set();          // dir paths currently expanded (visibl
 const levelContainers = new Map();       // dir path -> its children container element
 
 const el = (id) => document.getElementById(id);
+
+const FAV_KEY = 'reefdoc-favorites';
+const favorites = createFavorites(loadFavorites());
+
+function loadFavorites() {
+  try { return JSON.parse(localStorage.getItem(FAV_KEY)) || []; } catch { return []; }
+}
+function saveFavorites() {
+  localStorage.setItem(FAV_KEY, JSON.stringify(listFavorites(favorites)));
+}
+function toggleFav(path) {
+  toggleFavorite(favorites, path);
+  saveFavorites();
+  renderFavorites();
+  refreshStars();
+}
+
+// A clickable ☆/★ control bound to a file path. Click toggles favorite and
+// does NOT open the file.
+function makeStar(path) {
+  const star = document.createElement('span');
+  const on = isFavorite(favorites, path);
+  star.className = 'star' + (on ? ' on' : '');
+  star.textContent = on ? '★' : '☆';
+  star.title = 'Toggle favorite';
+  star.addEventListener('click', (e) => { e.stopPropagation(); toggleFav(path); });
+  return star;
+}
+
+// Sync every rendered file item's star to current favorite state.
+function refreshStars() {
+  document.querySelectorAll('.tree-item[data-path]').forEach((item) => {
+    const star = item.querySelector('.star');
+    if (!star) return;
+    const on = isFavorite(favorites, item.dataset.path);
+    star.classList.toggle('on', on);
+    star.textContent = on ? '★' : '☆';
+  });
+}
+
+function renderFavorites() {
+  const favEl = el('favorites');
+  const favs = listFavorites(favorites);
+  favEl.innerHTML = '';
+  if (favs.length === 0) {
+    favEl.innerHTML = '<p class="empty">No favorites yet — click ☆ next to a file.</p>';
+    return;
+  }
+  for (const path of favs) {
+    const name = path.slice(path.lastIndexOf('/') + 1);
+    const item = document.createElement('div');
+    item.className = 'tree-item tree-file';
+    item.dataset.path = path;
+    item.title = path;
+    const label = document.createElement('span');
+    label.className = 'tree-label';
+    label.textContent = name;
+    item.appendChild(label);
+    item.appendChild(makeStar(path));
+    item.addEventListener('click', () => open(path, name));
+    favEl.appendChild(item);
+  }
+}
 const treeEl = el('tree');
 const searchEl = el('search');
 const tabbarEl = el('tabbar');
@@ -115,6 +179,8 @@ function renderNode(node) {
       else expandDir(node.path, kids, item);
     });
   } else {
+    item.dataset.path = node.path;
+    item.appendChild(makeStar(node.path));
     item.addEventListener('click', () => open(node.path, node.name));
   }
   return wrap;
@@ -187,10 +253,12 @@ async function runSearch(q) {
     const item = document.createElement('div');
     item.className = 'tree-item tree-file';
     item.title = r.path;
+    item.dataset.path = r.path;
     const label = document.createElement('span');
     label.className = 'tree-label';
     label.textContent = r.path;
     item.appendChild(label);
+    item.appendChild(makeStar(r.path));
     item.addEventListener('click', () => open(r.path, r.name));
     searchEl.appendChild(item);
   }
@@ -423,7 +491,7 @@ function initSidebarLayout() {
   if (w) sidebar.style.width = w + 'px';
   const h = localStorage.getItem('reefdoc-toc-h');
   if (h) tocSection.style.flex = '0 0 ' + h + 'px';
-  for (const id of ['tree-section', 'toc-section']) {
+  for (const id of ['fav-section', 'tree-section', 'toc-section']) {
     if (localStorage.getItem('reefdoc-fold-' + id) === '1') el(id).classList.add('folded');
   }
 
@@ -477,5 +545,6 @@ if (savedTheme) {
 }
 initMermaid();
 initSidebarLayout();
+renderFavorites();
 loadRootTree();
 connectSSE();
