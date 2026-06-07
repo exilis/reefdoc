@@ -23,8 +23,12 @@ reefdoc ./docs      # serve a folder (defaults to the current directory)
 
 ## Status
 
-Pre-implementation. See [`docs/specs`](docs/specs) for the design and
+Implemented and tested — Go backend (path-safe file API, recursive watcher, SSE)
+plus a vanilla-JS frontend (tree, tabs, markdown/mermaid/highlighting, TOC,
+themes, live reload). See [`docs/specs`](docs/specs) for the design and
 [`docs/plans`](docs/plans) for the implementation plan.
+
+Run the tests with `go test ./...` and `npm test`.
 
 ## Architecture
 

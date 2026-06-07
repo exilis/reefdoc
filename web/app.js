@@ -40,7 +40,12 @@ async function loadTree() {
 function renderTree() {
   const filtered = filterTree(fullTree, filterEl.value);
   treeEl.innerHTML = '';
-  for (const child of filtered.children || []) {
+  const children = filtered.children || [];
+  if (children.length === 0) {
+    treeEl.innerHTML = '<p class="empty">No markdown files found.</p>';
+    return;
+  }
+  for (const child of children) {
     treeEl.appendChild(renderNode(child));
   }
 }
@@ -217,6 +222,24 @@ contentEl.addEventListener('scroll', () => {
 });
 
 // ---- Live reload via SSE ----
+// When live reload is unavailable, show a manual-refresh affordance.
+// Core viewing still works without SSE.
+function setLiveReloadOffline(offline) {
+  let el = document.getElementById('lr-status');
+  if (offline) {
+    if (!el) {
+      el = document.createElement('button');
+      el.id = 'lr-status';
+      el.textContent = '⟲ Live reload offline — refresh';
+      el.title = 'Live updates are unavailable. Click to reload the current view.';
+      el.addEventListener('click', () => { loadTree(); if (store.active) show(store.active); });
+      document.body.appendChild(el);
+    }
+  } else if (el) {
+    el.remove();
+  }
+}
+
 function connectSSE() {
   let firstOpen = true;
   const es = new EventSource('/api/events');
@@ -231,12 +254,16 @@ function connectSSE() {
       else { tab.updated = true; renderTabs(); }
     }
   };
-  // The first onopen is the initial connect (boot already loaded the tree).
-  // Only refresh on a genuine reconnect to catch anything missed while down.
   es.onopen = () => {
+    setLiveReloadOffline(false);
     if (firstOpen) { firstOpen = false; return; }
     loadTree();
     if (store.active) show(store.active);
+  };
+  es.onerror = () => {
+    // EventSource auto-retries transient errors; surface a manual-refresh
+    // affordance meanwhile. Cleared on the next successful onopen.
+    setLiveReloadOffline(true);
   };
 }
 
