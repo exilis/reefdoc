@@ -1,0 +1,71 @@
+:root { --bg:#fff; --fg:#1a1a1a; --muted:#666; --border:#e2e2e2; --accent:#0b69c7; --sidebar:#fafafa; }
+body[data-theme="dark"] { --bg:#1e1e1e; --fg:#e6e6e6; --muted:#9aa; --border:#333; --accent:#5aa9ff; --sidebar:#252526; }
+
+* { box-sizing: border-box; }
+body { margin:0; display:flex; height:100vh; font:14px/1.6 system-ui,sans-serif;
+       color:var(--fg); background:var(--bg); }
+#sidebar { width:280px; flex:0 0 auto; display:flex; flex-direction:column; position:relative;
+           border-right:1px solid var(--border); background:var(--sidebar); overflow:hidden; }
+body.sidebar-collapsed #sidebar { display:none; }
+#sidebar-toggle { position:fixed; top:8px; left:8px; z-index:10; border:1px solid var(--border);
+                  background:var(--bg); color:var(--fg); cursor:pointer; border-radius:4px; padding:2px 8px; }
+#filter { margin:40px 8px 8px; padding:6px 8px; border:1px solid var(--border);
+          border-radius:4px; background:var(--bg); color:var(--fg); }
+#theme-toggle { margin:8px; padding:6px; cursor:pointer; background:var(--bg);
+                color:var(--fg); border:1px solid var(--border); border-radius:4px; }
+
+.tree-item { cursor:pointer; padding:2px 4px; white-space:nowrap; border-radius:3px; }
+.tree-item:hover { background:var(--border); }
+.tree-dir > .tree-label { font-weight:600; }
+.tree-children { margin-left:12px; }
+.tree-item.hidden { display:none; }
+
+#main { flex:1 1 auto; display:flex; flex-direction:column; overflow:hidden; }
+#tabbar { display:flex; flex:0 0 auto; align-items:stretch; border-bottom:1px solid var(--border); overflow-x:auto; scrollbar-width:thin; min-height:37px; }
+body.sidebar-collapsed #tabbar { padding-left:40px; }
+.tab { display:flex; align-items:center; gap:6px; padding:6px 10px; cursor:pointer;
+       border-right:1px solid var(--border); white-space:nowrap; color:var(--muted); }
+.tab.active { color:var(--fg); border-bottom:2px solid var(--accent); }
+.tab.updated::after { content:"●"; color:var(--accent); }
+.tab.missing { text-decoration:line-through; opacity:.6; }
+.tab .close { color:var(--muted); }
+.tab .close:hover { color:var(--fg); }
+
+#content { flex:1 1 auto; overflow:auto; padding:24px 32px; }
+#content .empty { color:var(--muted); }
+#content table { border-collapse:collapse; }
+#content th, #content td { border:1px solid var(--border); padding:4px 8px; }
+#content pre { overflow:auto; }
+.mermaid-error { border:1px solid #c00; background:#fee; color:#900; padding:8px;
+                 border-radius:4px; white-space:pre-wrap; }
+
+#toc a { display:block; color:var(--muted); text-decoration:none; padding:1px 0; }
+#toc a:hover { color:var(--accent); }
+#toc a.lvl-2 { padding-left:12px; }
+#toc a.lvl-3 { padding-left:24px; }
+
+#lr-status { position:fixed; bottom:10px; right:10px; z-index:20; background:var(--bg);
+             color:var(--fg); border:1px solid var(--accent); border-radius:4px;
+             padding:4px 10px; cursor:pointer; font-size:12px; box-shadow:0 1px 4px rgba(0,0,0,.25); }
+
+.tree-dir > .tree-label::before { content:"\25b8"; display:inline-block; width:1em; color:var(--muted); }
+.tree-dir.expanded > .tree-label::before { content:"\25be"; }
+
+.sidebar-section { display:flex; flex-direction:column; overflow:hidden; min-height:24px; }
+#tree-section { flex:1 1 auto; }
+#toc-section { flex:0 0 35%; }
+.sidebar-section.folded { flex:0 0 auto; }
+.sidebar-section.folded .section-body { display:none; }
+.section-header { cursor:pointer; user-select:none; padding:4px 8px; font-size:11px; font-weight:600;
+                  text-transform:uppercase; letter-spacing:.05em; color:var(--muted);
+                  display:flex; align-items:center; gap:6px; }
+.section-header:hover { color:var(--fg); }
+.fold-caret::before { content:"\25be"; display:inline-block; font-size:10px; }
+.sidebar-section.folded .fold-caret::before { content:"\25b8"; }
+.section-body { flex:1 1 auto; overflow:auto; }
+#tree, #search, #toc { padding:0 8px; }
+#toc { font-size:13px; }
+#vsplit { flex:0 0 auto; height:6px; cursor:row-resize; }
+#vsplit:hover { background:var(--border); }
+#sidebar-resize { position:absolute; top:0; right:0; width:5px; height:100%; cursor:col-resize; z-index:5; }
+#sidebar-resize:hover { background:var(--accent); }

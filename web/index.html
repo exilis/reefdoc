@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reefdoc</title>
+<link rel="stylesheet" href="/app.css">
+<link id="hljs-theme" rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css">
+<script type="importmap">
+{
+  "imports": {
+    "markdown-it": "https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/+esm",
+    "markdown-it-task-lists": "https://cdn.jsdelivr.net/npm/markdown-it-task-lists@2.1.1/+esm",
+    "highlight.js": "https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/+esm",
+    "mermaid": "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/+esm"
+  }
+}
+</script>
+</head>
+<body data-theme="light">
+  <button id="sidebar-toggle" title="Toggle sidebar">☰</button>
+  <aside id="sidebar">
+    <input id="filter" type="search" placeholder="Filter files…" autocomplete="off">
+    <section id="tree-section" class="sidebar-section">
+      <div class="section-header" data-target="tree-section"><span class="fold-caret"></span>Files</div>
+      <div class="section-body">
+        <nav id="tree"></nav>
+        <nav id="search" style="display:none"></nav>
+      </div>
+    </section>
+    <div id="vsplit" title="Drag to resize"></div>
+    <section id="toc-section" class="sidebar-section">
+      <div class="section-header" data-target="toc-section"><span class="fold-caret"></span>Outline</div>
+      <div class="section-body">
+        <nav id="toc"></nav>
+      </div>
+    </section>
+    <button id="theme-toggle">Toggle theme</button>
+    <div id="sidebar-resize" title="Drag to resize width"></div>
+  </aside>
+  <main id="main">
+    <div id="tabbar"></div>
+    <article id="content"><p class="empty">Select a file from the tree.</p></article>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
