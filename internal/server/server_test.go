@@ -69,3 +69,22 @@ func TestHandleAssets_ServesIndex(t *testing.T) {
 		t.Fatalf("status %d body %q", rec.Code, rec.Body.String())
 	}
 }
+
+func TestHandleFile_SymlinkEscapeIs400(t *testing.T) {
+	root := t.TempDir()
+	outside := t.TempDir()
+	secret := filepath.Join(outside, "secret.md")
+	if err := os.WriteFile(secret, []byte("top secret"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(root, "link.md")
+	if err := os.Symlink(secret, link); err != nil {
+		t.Skipf("symlinks not supported on this platform: %v", err)
+	}
+	s := New(root, NewBroker(), fstest.MapFS{})
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/file?path=link.md", nil))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status %d, want 400 (in-root symlink pointing outside root must be rejected)", rec.Code)
+	}
+}

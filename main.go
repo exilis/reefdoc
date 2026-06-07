@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"reefdoc/internal/server"
 )
@@ -25,6 +26,10 @@ func main() {
 	}
 	if fi, err := os.Stat(root); err != nil || !fi.IsDir() {
 		log.Fatalf("not a directory: %s", root)
+	}
+	root, err := filepath.Abs(root)
+	if err != nil {
+		log.Fatalf("cannot resolve %s: %v", root, err)
 	}
 
 	assets, err := fs.Sub(webFS, "web")
