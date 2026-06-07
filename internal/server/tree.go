@@ -64,3 +64,47 @@ func buildNode(absPath, relPath string) (*Node, error) {
 	})
 	return node, nil
 }
+
+// isNoiseDir reports whether a directory should be skipped entirely when
+// listing or searching: dependency/VCS/hidden directories that are never of
+// interest to a markdown viewer and would otherwise dominate a large tree.
+func isNoiseDir(name string) bool {
+	return name == "node_modules" || strings.HasPrefix(name, ".")
+}
+
+// ListDir returns the immediate children (non-noise directories and markdown
+// files) of the directory at relDir (relative to root; "" means the root).
+// It does NOT recurse — directory nodes carry no children, so callers list
+// deeper levels on demand. Directories come first, then files, each group
+// sorted case-insensitively by name.
+func ListDir(root, relDir string) ([]*Node, error) {
+	absDir, err := SafeJoin(root, relDir)
+	if err != nil {
+		return nil, err
+	}
+	entries, err := os.ReadDir(absDir)
+	if err != nil {
+		return nil, err
+	}
+	var nodes []*Node
+	for _, e := range entries {
+		name := e.Name()
+		childRel := filepath.ToSlash(filepath.Join(relDir, name))
+		if e.IsDir() {
+			if isNoiseDir(name) {
+				continue
+			}
+			nodes = append(nodes, &Node{Name: name, Path: childRel, IsDir: true})
+		} else if isMarkdown(name) {
+			nodes = append(nodes, &Node{Name: name, Path: childRel, IsDir: false})
+		}
+	}
+	sort.Slice(nodes, func(i, j int) bool {
+		a, b := nodes[i], nodes[j]
+		if a.IsDir != b.IsDir {
+			return a.IsDir
+		}
+		return strings.ToLower(a.Name) < strings.ToLower(b.Name)
+	})
+	return nodes, nil
+}
