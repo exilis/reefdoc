@@ -71,3 +71,57 @@ func TestWatcher_EmitsTreeOnCreate(t *testing.T) {
 		return m["type"] == "tree"
 	})
 }
+
+func TestWatcher_SetWatchesDetectsSubdirEdit(t *testing.T) {
+	root := t.TempDir()
+	sub := filepath.Join(root, "sub")
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(sub, "x.md")
+	if err := os.WriteFile(file, []byte("one"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	b := NewBroker()
+	w, err := NewWatcher(root, b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go w.Run()
+	defer w.Close()
+	w.SetWatches([]string{"sub"})
+	sub2 := b.Subscribe()
+
+	time.Sleep(50 * time.Millisecond)
+	if err := os.WriteFile(file, []byte("two"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	waitForMsg(t, sub2, func(m map[string]string) bool {
+		return m["type"] == "change" && m["path"] == "sub/x.md"
+	})
+}
+
+func TestWatcher_TreeEventCarriesDir(t *testing.T) {
+	root := t.TempDir()
+	sub := filepath.Join(root, "sub")
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	b := NewBroker()
+	w, err := NewWatcher(root, b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go w.Run()
+	defer w.Close()
+	w.SetWatches([]string{"sub"})
+	subc := b.Subscribe()
+
+	time.Sleep(50 * time.Millisecond)
+	if err := os.WriteFile(filepath.Join(sub, "new.md"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	waitForMsg(t, subc, func(m map[string]string) bool {
+		return m["type"] == "tree" && m["path"] == "sub"
+	})
+}
