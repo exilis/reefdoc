@@ -2,7 +2,7 @@
   "name": "reefdoc-web-tests",
   "private": true,
   "type": "module",
-  "scripts": { "test": "node --test web/" },
+  "scripts": { "test": "node --test" },
   "devDependencies": {
     "highlight.js": "11.9.0",
     "markdown-it": "14.1.0",
