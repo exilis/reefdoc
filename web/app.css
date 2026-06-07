@@ -64,6 +64,7 @@ body.sidebar-collapsed #tabbar { padding-left:40px; }
 .sidebar-section.folded .fold-caret::before { content:"\25b8"; }
 .section-body { flex:1 1 auto; overflow:auto; }
 #tree, #search, #toc { padding:0 8px; }
+#search { flex:1 1 auto; overflow:auto; }
 #toc { font-size:13px; }
 #vsplit { flex:0 0 auto; height:6px; cursor:row-resize; }
 #vsplit:hover { background:var(--border); }

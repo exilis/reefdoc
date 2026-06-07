@@ -162,7 +162,7 @@ filterEl.addEventListener('input', () => {
 });
 
 function showTreeView() {
-  treeEl.style.display = '';
+  document.getElementById('tree-section').style.display = '';
   searchEl.style.display = 'none';
   searchEl.innerHTML = '';
 }
@@ -176,7 +176,7 @@ async function runSearch(q) {
   } catch {
     return;
   }
-  treeEl.style.display = 'none';
+  document.getElementById('tree-section').style.display = 'none';
   searchEl.style.display = '';
   searchEl.innerHTML = '';
   if (!data.results || data.results.length === 0) {
