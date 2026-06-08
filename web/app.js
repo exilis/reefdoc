@@ -446,6 +446,11 @@ function restoreScroll(tab) {
   contentEl.scrollTop = (tab.scrollRatio || 0) * contentEl.scrollHeight;
 }
 
+function resolvePath(base, href) {
+  const dir = base.slice(0, base.lastIndexOf('/') + 1);
+  return new URL(href, 'file:///' + dir).pathname.slice(1);
+}
+
 contentEl.addEventListener('scroll', () => {
   const tab = getTab(store, store.active);
   if (tab && contentEl.scrollHeight > 0) {
