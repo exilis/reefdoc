@@ -10,11 +10,10 @@ files change on disk.
 
 You edit markdown in your own editor; `reefdoc` is the preview.
 
-> **Latest release: [v0.6.1](https://github.com/exilis/reefdoc/releases/tag/v0.6.1).**
-> Recent highlights: the file tree now flags **recently-updated documents with a
-> dot** (live, as files change), and folder/file icons distinguish directories
-> from files. **Allium spec files (`.allium`) are now rendered as formatted cards**
-> (unreleased, on main). Full history in the [changelog](CHANGELOG.md).
+> **Latest release: [v0.7.0](https://github.com/exilis/reefdoc/releases/tag/v0.7.0).**
+> Recent highlights: **Allium spec files (`.allium`) are rendered as formatted cards**,
+> and `.allium` files and directories appear in the file-tree navigator.
+> Full history in the [changelog](CHANGELOG.md).
 
 ```bash
 reefdoc ./docs      # serve a folder (defaults to the current directory)
