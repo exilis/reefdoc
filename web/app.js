@@ -451,6 +451,17 @@ function resolvePath(base, href) {
   return decodeURIComponent(new URL(href, 'file:///' + dir).pathname.slice(1));
 }
 
+contentEl.addEventListener('click', e => {
+  const a = e.target.closest('a');
+  if (!a) return;
+  const href = a.getAttribute('href');
+  if (!href || /^(https?:|mailto:|#)/.test(href)) return;
+  e.preventDefault();
+  const resolved = resolvePath(store.active || '', href);
+  const title = resolved.slice(resolved.lastIndexOf('/') + 1);
+  open(resolved, title);
+});
+
 contentEl.addEventListener('scroll', () => {
   const tab = getTab(store, store.active);
   if (tab && contentEl.scrollHeight > 0) {
