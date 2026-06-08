@@ -5,6 +5,13 @@ All notable changes to reefdoc are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-06-09
+
+### Added
+- Clicking a markdown link or an Allium `use "path"` declaration opens the
+  referenced file in a new reefdoc tab. Relative paths resolve against the
+  current file; external URLs open in the browser as before.
+
 ## [0.7.0] - 2026-06-09
 
 ### Added

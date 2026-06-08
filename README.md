@@ -10,9 +10,9 @@ files change on disk.
 
 You edit markdown in your own editor; `reefdoc` is the preview.
 
-> **Latest release: [v0.7.0](https://github.com/exilis/reefdoc/releases/tag/v0.7.0).**
-> Recent highlights: **Allium spec files (`.allium`) are rendered as formatted cards**,
-> and `.allium` files and directories appear in the file-tree navigator.
+> **Latest release: [v0.8.0](https://github.com/exilis/reefdoc/releases/tag/v0.8.0).**
+> Recent highlights: **clicking a markdown link or an Allium `use` path opens the
+> referenced file in a new tab** — relative paths resolve against the current file.
 > Full history in the [changelog](CHANGELOG.md).
 
 ```bash
@@ -42,6 +42,7 @@ go build -o reefdoc . && ./reefdoc ./docs
 - Auto table of contents from document headings
 - Dark / light theme (mermaid follows the theme)
 - Live reload: edit a file in any editor and the open tab updates
+- Hyperlinks between documents — markdown links and Allium `use` paths open in a new tab
 
 ## Status
 
