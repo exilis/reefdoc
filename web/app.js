@@ -36,11 +36,17 @@ function makeRecentDot() {
 }
 
 // Ensure the file row for `path` shows a recent dot (used on live `change`
-// events). No-op for directories or rows not currently rendered.
+// events). No-op for directories or rows not currently rendered — for a newly
+// created file the `change` event arrives before the row exists, so the dot is
+// applied later via the `tree` event's reloadLevel -> renderNode path instead.
 function markRecentInTree(path) {
   const item = findTreeItem(path);
   if (!item || item.querySelector('.recent-dot')) return;
-  item.insertBefore(makeRecentDot(), item.querySelector('.star'));
+  // Insert before the star to keep the [icon][label][dot][star] row order.
+  // File rows always carry a star, but fall back to append if one is absent.
+  const star = item.querySelector('.star');
+  if (star) item.insertBefore(makeRecentDot(), star);
+  else item.appendChild(makeRecentDot());
 }
 
 const FAV_KEY = 'reefdoc-favorites';
