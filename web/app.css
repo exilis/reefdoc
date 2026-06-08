@@ -76,6 +76,8 @@ body.sidebar-collapsed #tabbar { padding-left:40px; }
 .tree-item:hover .star { visibility:visible; }
 .star.on { visibility:visible; color:var(--accent); }
 .star:hover { color:var(--accent); }
+.recent-dot { flex:0 0 auto; width:6px; height:6px; border-radius:50%;
+              background:var(--accent); margin-left:6px; }
 #fav-section { flex:0 0 auto; max-height:30%; }
 #favorites { padding:0 8px; }
 

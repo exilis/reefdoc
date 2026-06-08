@@ -13,6 +13,7 @@ type Node struct {
 	Name     string  `json:"name"`
 	Path     string  `json:"path"`
 	IsDir    bool    `json:"isDir"`
+	ModTime  int64   `json:"modTime,omitempty"` // unix millis; set for files only
 	Children []*Node `json:"children,omitempty"`
 }
 
@@ -52,7 +53,11 @@ func ListDir(root, relDir string) ([]*Node, error) {
 			}
 			nodes = append(nodes, &Node{Name: name, Path: childRel, IsDir: true})
 		} else if isMarkdown(name) {
-			nodes = append(nodes, &Node{Name: name, Path: childRel, IsDir: false})
+			n := &Node{Name: name, Path: childRel, IsDir: false}
+			if info, err := e.Info(); err == nil {
+				n.ModTime = info.ModTime().UnixMilli()
+			}
+			nodes = append(nodes, n)
 		}
 	}
 	sort.Slice(nodes, func(i, j int) bool {

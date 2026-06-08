@@ -3,6 +3,7 @@ import { createRenderer } from './render.js';
 import { createTabStore, openTab, closeTab, getTab } from './tabs.js';
 import { buildToc, slugify } from './toc.js';
 import { createFavorites, isFavorite, toggleFavorite, listFavorites } from './favorites.js';
+import { isRecent } from './recency.js';
 
 const render = createRenderer();
 const store = createTabStore();
@@ -24,6 +25,22 @@ function makeIcon(isDir, open) {
   span.className = 'icon ' + (isDir ? 'icon-dir' : 'icon-file');
   span.innerHTML = isDir ? (open ? ICON_FOLDER_OPEN : ICON_FOLDER) : ICON_FILE;
   return span;
+}
+
+// A small accent dot marking a file modified within the recent window.
+function makeRecentDot() {
+  const dot = document.createElement('span');
+  dot.className = 'recent-dot';
+  dot.title = 'Updated in the last 24h';
+  return dot;
+}
+
+// Ensure the file row for `path` shows a recent dot (used on live `change`
+// events). No-op for directories or rows not currently rendered.
+function markRecentInTree(path) {
+  const item = findTreeItem(path);
+  if (!item || item.querySelector('.recent-dot')) return;
+  item.insertBefore(makeRecentDot(), item.querySelector('.star'));
 }
 
 const FAV_KEY = 'reefdoc-favorites';
@@ -234,6 +251,7 @@ function renderNode(node) {
     item.appendChild(makeStar(node.path, true));
   } else {
     item.dataset.path = node.path;
+    if (isRecent(node.modTime)) item.appendChild(makeRecentDot());
     item.appendChild(makeStar(node.path, false));
     item.addEventListener('click', () => open(node.path, node.name));
   }
@@ -453,6 +471,7 @@ function connectSSE() {
     if (msg.type === 'tree') {
       reloadLevel(msg.path);
     } else if (msg.type === 'change') {
+      markRecentInTree(msg.path);
       const tab = getTab(store, msg.path);
       if (!tab) return;
       if (msg.path === store.active) show(msg.path);
