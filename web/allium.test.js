@@ -83,3 +83,9 @@ test('renderAllium: body is syntax-highlighted', () => {
 test('renderAllium: empty source returns placeholder', () => {
   assert.match(renderAllium(''), /class="empty"/);
 });
+
+test('renderAllium: single-line declaration uses code element', () => {
+  const html = renderAllium('use "./other.allium" as other');
+  assert.match(html, /<code class="allium-body">/);
+  assert.doesNotMatch(html, /<pre class="hljs allium-body">/);
+});
