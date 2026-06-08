@@ -3,7 +3,7 @@
 [![CI](https://github.com/exilis/reefdoc/actions/workflows/ci.yml/badge.svg)](https://github.com/exilis/reefdoc/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A lightweight, local-only **markdown & mermaid viewer**. One self-contained Go
+A lightweight, local-only **markdown, mermaid & allium viewer**. One self-contained Go
 binary serves a browser UI with a file-tree navigator, tabs for multiple open
 documents, an auto table of contents, dark/light themes, and live reload when
 files change on disk.
@@ -13,7 +13,8 @@ You edit markdown in your own editor; `reefdoc` is the preview.
 > **Latest release: [v0.6.1](https://github.com/exilis/reefdoc/releases/tag/v0.6.1).**
 > Recent highlights: the file tree now flags **recently-updated documents with a
 > dot** (live, as files change), and folder/file icons distinguish directories
-> from files. Full history in the [changelog](CHANGELOG.md).
+> from files. **Allium spec files (`.allium`) are now rendered as formatted cards**
+> (unreleased, on main). Full history in the [changelog](CHANGELOG.md).
 
 ```bash
 reefdoc ./docs      # serve a folder (defaults to the current directory)
@@ -38,6 +39,7 @@ go build -o reefdoc . && ./reefdoc ./docs
 - Recently-updated documents flagged with a dot in the tree (updates live)
 - Tabs for multiple open documents
 - GitHub-flavored markdown, code syntax highlighting, and mermaid diagrams
+- [Allium](https://allium.dev) spec files (`.allium`) rendered as formatted cards
 - Auto table of contents from document headings
 - Dark / light theme (mermaid follows the theme)
 - Live reload: edit a file in any editor and the open tab updates
