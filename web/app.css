@@ -83,3 +83,16 @@ body.sidebar-collapsed #tabbar { padding-left:40px; }
 
 @keyframes reef-flash { from { background:var(--accent); } to { background:transparent; } }
 .tree-item.flash { animation: reef-flash 0.9s ease-out; }
+
+/* ---- Allium spec rendering ---- */
+.allium-block { margin-bottom:20px; border-left:3px solid var(--accent); border-radius:0 4px 4px 0; background:var(--sidebar); overflow:hidden; }
+.allium-block--rule { border-left-color:#c97c00; }
+body[data-theme="dark"] .allium-block--rule { border-left-color:#e0a030; }
+.allium-block--surface { border-left-color:#1a8a3c; }
+body[data-theme="dark"] .allium-block--surface { border-left-color:#3dbf65; }
+.allium-block--contract { border-left-color:#7b4fc4; }
+body[data-theme="dark"] .allium-block--contract { border-left-color:#a97ee8; }
+.allium-block-header { display:flex; align-items:center; gap:8px; margin:0; padding:8px 12px; font-size:13px; font-weight:normal; border-bottom:1px solid var(--border); }
+.allium-kw { font-family:ui-monospace,monospace; font-size:11px; padding:1px 6px; border-radius:10px; background:var(--border); color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; }
+.allium-name { font-family:ui-monospace,monospace; font-size:14px; font-weight:600; color:var(--fg); }
+.allium-body { margin:0; padding:12px; border-radius:0; font-size:13px; }
