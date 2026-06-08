@@ -69,3 +69,24 @@ func TestListDir_RejectsEscape(t *testing.T) {
 		t.Fatal("expected error for escaping path")
 	}
 }
+
+func TestListDir_FilesCarryModTime(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "a.md"))
+	writeFile(t, filepath.Join(root, "sub", "deep.md"))
+
+	nodes, err := ListDir(root, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// nodes are: "sub" (dir) then "a.md" (file)
+	for _, n := range nodes {
+		if n.IsDir {
+			if n.ModTime != 0 {
+				t.Fatalf("dir %q should have zero ModTime, got %d", n.Name, n.ModTime)
+			}
+		} else if n.ModTime == 0 {
+			t.Fatalf("file %q should have a non-zero ModTime", n.Name)
+		}
+	}
+}
