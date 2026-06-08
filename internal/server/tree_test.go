@@ -74,6 +74,7 @@ func TestListDir_AlliumFilesAndDir(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "spec.allium"))
 	writeFile(t, filepath.Join(root, ".allium", "schema.allium"))
+	writeFile(t, filepath.Join(root, ".claude", "settings.json"))
 	writeFile(t, filepath.Join(root, ".git", "config"))
 
 	nodes, err := ListDir(root, "")
@@ -84,8 +85,8 @@ func TestListDir_AlliumFilesAndDir(t *testing.T) {
 	for _, n := range nodes {
 		names = append(names, n.Name)
 	}
-	// .allium dir listed, .git hidden; spec.allium listed as file
-	want := []string{".allium", "spec.allium"}
+	// .allium and .claude dirs listed, .git hidden; spec.allium listed as file
+	want := []string{".allium", ".claude", "spec.allium"}
 	if !reflect.DeepEqual(names, want) {
 		t.Fatalf("got %v want %v", names, want)
 	}
