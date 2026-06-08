@@ -93,7 +93,7 @@ function renderBlock({ keyword, name, body }) {
     ? `<code class="allium-body">${highlighted}</code>`
     : `<pre class="hljs allium-body"><code>${highlighted}</code></pre>`;
   const nameSpan = name ? ` <span class="allium-name">${escHtml(name)}</span>` : '';
-  return `<section class="allium-block allium-block--${skw}" id="${id}"><h3 class="allium-block-header"><span class="allium-kw">${escHtml(keyword)}</span>${nameSpan}</h3>${bodyHtml}</section>`;
+  return `<section class="allium-block allium-block--${skw}"><h3 id="${id}" class="allium-block-header"><span class="allium-kw">${escHtml(keyword)}</span>${nameSpan}</h3>${bodyHtml}</section>`;
 }
 
 function escHtml(s) {

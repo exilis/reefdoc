@@ -61,18 +61,19 @@ test('splitBlocks: blank source returns empty array', () => {
 test('renderAllium: section has correct class and id', () => {
   const html = renderAllium('entity Foo {\n  x: Integer\n}');
   assert.match(html, /class="allium-block allium-block--entity"/);
-  assert.match(html, /id="entity-foo"/);
+  assert.match(html, /<h3 id="entity-foo"/);
+  assert.doesNotMatch(html, /<section[^>]*id=/);
 });
 
 test('renderAllium: h3 contains keyword badge then name', () => {
   const html = renderAllium('entity Foo {\n  x: Integer\n}');
-  assert.match(html, /<h3 class="allium-block-header"><span class="allium-kw">entity<\/span> <span class="allium-name">Foo<\/span><\/h3>/);
+  assert.match(html, /<h3[^>]*class="allium-block-header"[^>]*><span class="allium-kw">entity<\/span> <span class="allium-name">Foo<\/span><\/h3>/);
 });
 
 test('renderAllium: multi-word keyword uses hyphen slug in class and id', () => {
   const html = renderAllium('external entity Role { title: String }');
   assert.match(html, /allium-block--external-entity/);
-  assert.match(html, /id="external-entity-role"/);
+  assert.match(html, /<h3 id="external-entity-role"/);
 });
 
 test('renderAllium: body is syntax-highlighted', () => {
