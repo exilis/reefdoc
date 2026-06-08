@@ -101,5 +101,25 @@ test('renderAllium: use block renders quoted path as an anchor', () => {
 test('renderAllium: use block with alias still links the path', () => {
   const html = renderAllium('use "specs/base.allium" as base');
   assert.match(html, /<a href="specs\/base\.allium">/);
-  assert.match(html, / as base/);
+  assert.match(html, /<\/a> as base/);
+});
+
+test('renderAllium: use block escapes HTML chars in path', () => {
+  const html = renderAllium('use "specs/foo&bar.allium"');
+  assert.match(html, /href="specs\/foo&amp;bar\.allium"/);
+  assert.doesNotMatch(html, /href="specs\/foo&bar\.allium"/);
+});
+
+test('renderAllium: use block blocks unsafe URL schemes', () => {
+  const html = renderAllium('use "javascript:alert(1)"');
+  assert.doesNotMatch(html, /<a href=/);
+  assert.match(html, /<code class="allium-body">/);
+});
+
+test('renderAllium: use block allows http and https schemes', () => {
+  const html1 = renderAllium('use "https://example.com"');
+  assert.match(html1, /<a href="https:\/\/example\.com">/);
+
+  const html2 = renderAllium('use "http://example.com"');
+  assert.match(html2, /<a href="http:\/\/example\.com">/);
 });

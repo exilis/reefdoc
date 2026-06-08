@@ -93,9 +93,14 @@ function renderBlock({ keyword, name, body }) {
   if (keyword === 'use') {
     const pathMatch = name.match(/^"([^"]+)"/);
     if (pathMatch) {
-      const path = pathMatch[1];
-      const after = escHtml(name.slice(pathMatch[0].length));
-      bodyHtml = `<code class="allium-body"><span class="hljs-keyword">use</span> <a href="${escHtml(path)}">"${escHtml(path)}"</a>${after}</code>`;
+      const filePath = pathMatch[1];
+      const isUnsafeScheme = /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(filePath) && !/^https?:/i.test(filePath);
+      if (!isUnsafeScheme) {
+        const after = escHtml(name.slice(pathMatch[0].length));
+        bodyHtml = `<code class="allium-body"><span class="hljs-keyword">use</span> <a href="${escHtml(filePath)}">"${escHtml(filePath)}"</a>${after}</code>`;
+      } else {
+        bodyHtml = `<code class="allium-body">${highlighted}</code>`;
+      }
     } else {
       bodyHtml = `<code class="allium-body">${highlighted}</code>`;
     }
