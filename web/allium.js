@@ -11,11 +11,14 @@ export function splitBlocks(source) {
 
   while (i < lines.length) {
     const line = lines[i];
-    const bkw = BLOCK_KEYWORDS.find(kw => line.startsWith(kw));
+    const bkw = BLOCK_KEYWORDS.find(kw =>
+      line.startsWith(kw) && (line.length === kw.length || line[kw.length] === ' '));
     if (bkw) {
       const afterKw = line.slice(bkw.length).trim();
-      const braceIdx = afterKw.indexOf('{');
-      const name = (braceIdx >= 0 ? afterKw.slice(0, braceIdx) : afterKw).trim();
+      const commentCut = afterKw.indexOf('--');
+      const codePart = commentCut >= 0 ? afterKw.slice(0, commentCut) : afterKw;
+      const braceIdx = codePart.indexOf('{');
+      const name = (braceIdx >= 0 ? codePart.slice(0, braceIdx) : codePart).trim();
       const start = i;
       let depth = countBraces(line);
       i++;
@@ -27,7 +30,8 @@ export function splitBlocks(source) {
       continue;
     }
 
-    const lkw = LINE_KEYWORDS.find(kw => line.startsWith(kw));
+    const lkw = LINE_KEYWORDS.find(kw =>
+      line.startsWith(kw) && (line.length === kw.length || line[kw.length] === ' '));
     if (lkw) {
       blocks.push({ keyword: lkw, name: line.slice(lkw.length).trim(), body: line });
       i++;
