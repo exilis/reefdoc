@@ -10,6 +10,11 @@ files change on disk.
 
 You edit markdown in your own editor; `reefdoc` is the preview.
 
+> **Latest release: [v0.6.1](https://github.com/exilis/reefdoc/releases/tag/v0.6.1).**
+> Recent highlights: the file tree now flags **recently-updated documents with a
+> dot** (live, as files change), and folder/file icons distinguish directories
+> from files. Full history in the [changelog](CHANGELOG.md).
+
 ```bash
 reefdoc ./docs      # serve a folder (defaults to the current directory)
 # then open http://127.0.0.1:8080
@@ -29,7 +34,8 @@ go build -o reefdoc . && ./reefdoc ./docs
 
 ## Features
 
-- File-tree navigator with instant filename filtering
+- File-tree navigator with folder/file icons
+- Recently-updated documents flagged with a dot in the tree (updates live)
 - Tabs for multiple open documents
 - GitHub-flavored markdown, code syntax highlighting, and mermaid diagrams
 - Auto table of contents from document headings
