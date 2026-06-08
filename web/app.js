@@ -4,6 +4,7 @@ import { createTabStore, openTab, closeTab, getTab } from './tabs.js';
 import { buildToc, slugify } from './toc.js';
 import { createFavorites, isFavorite, toggleFavorite, listFavorites } from './favorites.js';
 import { isRecent } from './recency.js';
+import { renderAllium } from './allium.js';
 
 const render = createRenderer();
 const store = createTabStore();
@@ -385,7 +386,7 @@ async function show(path) {
     return;
   }
 
-  contentEl.innerHTML = render(text);
+  contentEl.innerHTML = path.endsWith('.allium') ? renderAllium(text) : render(text);
   assignHeadingIds();
   renderToc();
   await runMermaid();
