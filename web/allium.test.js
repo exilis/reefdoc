@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { splitBlocks } from './allium.js';
+import { splitBlocks, renderAllium } from './allium.js';
 
 test('splitBlocks: single entity block', () => {
   const src = 'entity Foo {\n  name: String\n}';
@@ -56,4 +56,30 @@ test('splitBlocks: nameless block (config)', () => {
 test('splitBlocks: blank source returns empty array', () => {
   assert.deepEqual(splitBlocks(''), []);
   assert.deepEqual(splitBlocks('  \n  '), []);
+});
+
+test('renderAllium: section has correct class and id', () => {
+  const html = renderAllium('entity Foo {\n  x: Integer\n}');
+  assert.match(html, /class="allium-block allium-block--entity"/);
+  assert.match(html, /id="entity-foo"/);
+});
+
+test('renderAllium: h3 contains keyword badge then name', () => {
+  const html = renderAllium('entity Foo {\n  x: Integer\n}');
+  assert.match(html, /<h3 class="allium-block-header"><span class="allium-kw">entity<\/span> <span class="allium-name">Foo<\/span><\/h3>/);
+});
+
+test('renderAllium: multi-word keyword uses hyphen slug in class and id', () => {
+  const html = renderAllium('external entity Role { title: String }');
+  assert.match(html, /allium-block--external-entity/);
+  assert.match(html, /id="external-entity-role"/);
+});
+
+test('renderAllium: body is syntax-highlighted', () => {
+  const html = renderAllium('entity Foo {\n  x: Integer\n}');
+  assert.match(html, /hljs-/);
+});
+
+test('renderAllium: empty source returns placeholder', () => {
+  assert.match(renderAllium(''), /class="empty"/);
 });
