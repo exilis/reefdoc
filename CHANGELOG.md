@@ -5,6 +5,14 @@ All notable changes to reefdoc are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-06-09
+
+### Added
+- Allium spec files (`.allium`) are rendered as formatted cards in the browser,
+  with syntax highlighting and a dedicated card layout for entities, rules,
+  triggers, surfaces, and contracts.
+- `.allium` files and directories are listed in the file-tree navigator.
+
 ## [0.6.1] - 2026-06-08
 
 ### Added
