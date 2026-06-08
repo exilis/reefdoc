@@ -90,3 +90,16 @@ test('renderAllium: single-line declaration uses code element', () => {
   assert.match(html, /<code class="allium-body">/);
   assert.doesNotMatch(html, /<pre class="hljs allium-body">/);
 });
+
+test('renderAllium: use block renders quoted path as an anchor', () => {
+  const html = renderAllium('use "./specs/core.allium"');
+  assert.match(html, /<a href="\.\/specs\/core\.allium">/);
+  assert.match(html, /"\.\/specs\/core\.allium"<\/a>/);
+  assert.match(html, /class="allium-body"/);
+});
+
+test('renderAllium: use block with alias still links the path', () => {
+  const html = renderAllium('use "specs/base.allium" as base');
+  assert.match(html, /<a href="specs\/base\.allium">/);
+  assert.match(html, / as base/);
+});

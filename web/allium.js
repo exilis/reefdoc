@@ -89,9 +89,21 @@ function renderBlock({ keyword, name, body }) {
   const slugName = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const id = slugName ? `${skw}-${slugName}` : skw;
   const highlighted = hljs.highlight(body, { language: 'allium' }).value;
-  const bodyHtml = LINE_KEYWORDS.includes(keyword)
-    ? `<code class="allium-body">${highlighted}</code>`
-    : `<pre class="hljs allium-body"><code>${highlighted}</code></pre>`;
+  let bodyHtml;
+  if (keyword === 'use') {
+    const pathMatch = name.match(/^"([^"]+)"/);
+    if (pathMatch) {
+      const path = pathMatch[1];
+      const after = escHtml(name.slice(pathMatch[0].length));
+      bodyHtml = `<code class="allium-body"><span class="hljs-keyword">use</span> <a href="${escHtml(path)}">"${escHtml(path)}"</a>${after}</code>`;
+    } else {
+      bodyHtml = `<code class="allium-body">${highlighted}</code>`;
+    }
+  } else {
+    bodyHtml = LINE_KEYWORDS.includes(keyword)
+      ? `<code class="allium-body">${highlighted}</code>`
+      : `<pre class="hljs allium-body"><code>${highlighted}</code></pre>`;
+  }
   const nameSpan = name ? ` <span class="allium-name">${escHtml(name)}</span>` : '';
   return `<section class="allium-block allium-block--${skw}"><h3 id="${id}" class="allium-block-header"><span class="allium-kw">${escHtml(keyword)}</span>${nameSpan}</h3>${bodyHtml}</section>`;
 }
