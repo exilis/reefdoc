@@ -70,6 +70,36 @@ func TestListDir_RejectsEscape(t *testing.T) {
 	}
 }
 
+func TestListDir_AlliumFilesAndDir(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "spec.allium"))
+	writeFile(t, filepath.Join(root, ".allium", "schema.allium"))
+	writeFile(t, filepath.Join(root, ".git", "config"))
+
+	nodes, err := ListDir(root, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, n := range nodes {
+		names = append(names, n.Name)
+	}
+	// .allium dir listed, .git hidden; spec.allium listed as file
+	want := []string{".allium", "spec.allium"}
+	if !reflect.DeepEqual(names, want) {
+		t.Fatalf("got %v want %v", names, want)
+	}
+
+	// listing inside .allium works
+	inner, err := ListDir(root, ".allium")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(inner) != 1 || inner[0].Name != "schema.allium" {
+		t.Fatalf("unexpected inner: %+v", inner)
+	}
+}
+
 func TestListDir_FilesCarryModTime(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "a.md"))

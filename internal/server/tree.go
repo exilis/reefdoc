@@ -19,14 +19,14 @@ type Node struct {
 
 func isMarkdown(name string) bool {
 	ext := strings.ToLower(filepath.Ext(name))
-	return ext == ".md" || ext == ".markdown"
+	return ext == ".md" || ext == ".markdown" || ext == ".allium"
 }
 
 // isNoiseDir reports whether a directory should be skipped entirely when
 // listing or searching: dependency/VCS/hidden directories that are never of
 // interest to a markdown viewer and would otherwise dominate a large tree.
 func isNoiseDir(name string) bool {
-	return name == "node_modules" || strings.HasPrefix(name, ".")
+	return name == "node_modules" || (strings.HasPrefix(name, ".") && name != ".allium")
 }
 
 // ListDir returns the immediate children (non-noise directories and markdown
