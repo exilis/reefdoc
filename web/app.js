@@ -455,7 +455,7 @@ contentEl.addEventListener('click', e => {
   const a = e.target.closest('a');
   if (!a) return;
   const href = a.getAttribute('href');
-  if (!href || /^(https?:|mailto:|#)/.test(href)) return;
+  if (!href || /^(https?:|mailto:|file:|#)/.test(href)) return;
   e.preventDefault();
   const resolved = resolvePath(store.active || '', href);
   const title = resolved.slice(resolved.lastIndexOf('/') + 1);
