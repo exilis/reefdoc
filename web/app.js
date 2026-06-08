@@ -448,7 +448,7 @@ function restoreScroll(tab) {
 
 function resolvePath(base, href) {
   const dir = base.slice(0, base.lastIndexOf('/') + 1);
-  return new URL(href, 'file:///' + dir).pathname.slice(1);
+  return decodeURIComponent(new URL(href, 'file:///' + dir).pathname.slice(1));
 }
 
 contentEl.addEventListener('scroll', () => {

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 // and cannot be imported headlessly. Duplicate the pure function here.
 function resolvePath(base, href) {
   const dir = base.slice(0, base.lastIndexOf('/') + 1);
-  return new URL(href, 'file:///' + dir).pathname.slice(1);
+  return decodeURIComponent(new URL(href, 'file:///' + dir).pathname.slice(1));
 }
 
 test('resolvePath: sibling file via ./', () => {
@@ -26,4 +26,12 @@ test('resolvePath: file at root with relative link', () => {
 
 test('resolvePath: no active tab (empty base) with root-relative link', () => {
   assert.equal(resolvePath('', '/specs/core.allium'), 'specs/core.allium');
+});
+
+test('resolvePath: decodes percent-encoded characters in path', () => {
+  assert.equal(resolvePath('my docs/intro.md', './other.md'), 'my docs/other.md');
+});
+
+test('resolvePath: bare relative href without leading ./', () => {
+  assert.equal(resolvePath('docs/guide/intro.md', 'sibling.md'), 'docs/guide/sibling.md');
 });
