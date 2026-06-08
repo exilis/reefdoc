@@ -38,7 +38,7 @@ function makeRecentDot() {
 // Ensure the file row for `path` shows a recent dot (used on live `change`
 // events). No-op for directories or rows not currently rendered.
 function markRecentInTree(path) {
-  const item = document.querySelector(`.tree-file[data-path="${CSS.escape(path)}"]`);
+  const item = findTreeItem(path);
   if (!item || item.querySelector('.recent-dot')) return;
   item.insertBefore(makeRecentDot(), item.querySelector('.star'));
 }
