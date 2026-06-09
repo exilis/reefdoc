@@ -10,9 +10,9 @@ files change on disk.
 
 You edit markdown in your own editor; `reefdoc` is the preview.
 
-> **Latest release: [v0.8.0](https://github.com/exilis/reefdoc/releases/tag/v0.8.0).**
+> **Latest release: [v0.8.1](https://github.com/exilis/reefdoc/releases/tag/v0.8.1).**
 > Recent highlights: **clicking a markdown link or an Allium `use` path opens the
-> referenced file in a new tab** — relative paths resolve against the current file.
+> referenced file in a new tab**; the `.claude` directory is now visible in the tree.
 > Full history in the [changelog](CHANGELOG.md).
 
 ```bash
