@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// Node is a directory or markdown file in the tree. Path is relative to the
-// root, slash-separated. Directories with no markdown descendants are omitted.
+// Node is a directory or viewable file in the tree. Path is relative to the
+// root, slash-separated. Directories with no viewable descendants are omitted.
 type Node struct {
 	Name     string  `json:"name"`
 	Path     string  `json:"path"`
@@ -43,7 +43,7 @@ func isNoiseDir(name string) bool {
 	return name == "node_modules" || (strings.HasPrefix(name, ".") && name != ".allium" && name != ".claude")
 }
 
-// ListDir returns the immediate children (non-noise directories and markdown
+// ListDir returns the immediate children (non-noise directories and viewable
 // files) of the directory at relDir (relative to root; "" means the root).
 // It does NOT recurse — directory nodes carry no children, so callers list
 // deeper levels on demand. Directories come first, then files, each group
