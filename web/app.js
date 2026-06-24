@@ -5,6 +5,7 @@ import { buildToc, slugify } from './toc.js';
 import { createFavorites, isFavorite, toggleFavorite, listFavorites } from './favorites.js';
 import { isRecent } from './recency.js';
 import { renderAllium } from './allium.js';
+import { getViewer } from './viewers.js';
 
 const render = createRenderer();
 const store = createTabStore();
@@ -378,6 +379,19 @@ async function show(path) {
     return;
   }
   tab.missing = false;
+
+  const viewer = getViewer(path);
+  if (viewer) {
+    // Binary document: read raw bytes (no size cap) and render a static
+    // preview. No TOC, no scroll-restore. Best-effort — let failures surface.
+    const bytes = await res.arrayBuffer();
+    if (seq !== showSeq) return;
+    tocEl.innerHTML = '';
+    contentEl.innerHTML = '';
+    await viewer(bytes, contentEl);
+    return;
+  }
+
   const text = await res.text();
   if (seq !== showSeq) return;
   if (text.length > MAX_BYTES) {
