@@ -510,6 +510,8 @@ function connectSSE() {
       reloadLevel(msg.path);
     } else if (msg.type === 'change') {
       markRecentInTree(msg.path);
+      // Binary documents are static previews — do not live-reload them.
+      if (isBinaryDoc(msg.path)) return;
       const tab = getTab(store, msg.path);
       if (!tab) return;
       if (msg.path === store.active) show(msg.path);
