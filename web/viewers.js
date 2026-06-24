@@ -75,7 +75,7 @@ async function viewDocx(bytes, container) {
 }
 async function viewXlsx(bytes, container) {
   const XLSX = await lazyImport('xlsx');
-  const wb = XLSX.read(bytes, { type: 'array' });
+  const wb = XLSX.read(bytes, { type: 'buffer' });
   container.innerHTML = '';
   const wrap = document.createElement('div');
   wrap.className = 'xlsx-doc';
