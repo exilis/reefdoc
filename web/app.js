@@ -5,7 +5,7 @@ import { buildToc, slugify } from './toc.js';
 import { createFavorites, isFavorite, toggleFavorite, listFavorites } from './favorites.js';
 import { isRecent } from './recency.js';
 import { renderAllium } from './allium.js';
-import { getViewer } from './viewers.js';
+import { getViewer, isBinaryDoc } from './viewers.js';
 
 const render = createRenderer();
 const store = createTabStore();
@@ -260,7 +260,8 @@ function renderNode(node) {
   } else {
     item.dataset.path = node.path;
     if (isRecent(node.modTime)) item.appendChild(makeRecentDot());
-    item.appendChild(makeStar(node.path, false));
+    // Binary documents are static previews and cannot be favorited.
+    if (!isBinaryDoc(node.path)) item.appendChild(makeStar(node.path, false));
     item.addEventListener('click', () => open(node.path, node.name));
   }
   return wrap;
