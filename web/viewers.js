@@ -66,7 +66,12 @@ async function viewPdf(bytes, container) {
   }
 }
 async function viewDocx(bytes, container) {
-  throw new Error('docx viewer not yet implemented');
+  const docx = await lazyImport('docx-preview');
+  container.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'docx-doc';
+  container.appendChild(wrap);
+  await docx.renderAsync(bytes, wrap);
 }
 async function viewXlsx(bytes, container) {
   throw new Error('xlsx viewer not yet implemented');
