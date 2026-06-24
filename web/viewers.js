@@ -45,7 +45,25 @@ export function isBinaryDoc(path) {
 // --- viewers (implemented in later tasks) ---
 
 async function viewPdf(bytes, container) {
-  throw new Error('pdf viewer not yet implemented');
+  const pdfjs = await lazyImport('pdfjs-dist');
+  pdfjs.GlobalWorkerOptions.workerSrc =
+    'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.worker.min.mjs';
+  // copy bytes — pdf.js may transfer/detach the buffer
+  const doc = await pdfjs.getDocument({ data: bytes.slice(0) }).promise;
+  container.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'pdf-doc';
+  container.appendChild(wrap);
+  for (let n = 1; n <= doc.numPages; n++) {
+    const page = await doc.getPage(n);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement('canvas');
+    canvas.className = 'pdf-page';
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    wrap.appendChild(canvas);
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+  }
 }
 async function viewDocx(bytes, container) {
   throw new Error('docx viewer not yet implemented');
