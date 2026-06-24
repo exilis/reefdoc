@@ -96,7 +96,49 @@ async function viewPptx(bytes, container) {
   const wrap = document.createElement('div');
   wrap.className = 'pptx-doc';
   container.appendChild(wrap);
-  const width = container.clientWidth || 960;
-  const previewer = init(wrap, { width, height: Math.round(width * 0.5625) });
+
+  // pptx-preview renders at a fixed pixel size, so render at a crisp base
+  // width and then scale the result down with a CSS transform so the whole
+  // slide fits inside the content pane (both width and height). `stage` holds
+  // the rendered slide at base size; `fit` reserves the scaled box in layout
+  // and re-fits on resize (a transform alone does not shrink the layout box).
+  const BASE_W = 1280;
+  const BASE_H = Math.round(BASE_W * 0.5625); // 16:9
+  const fit = document.createElement('div');
+  fit.className = 'pptx-fit';
+  const stage = document.createElement('div');
+  stage.className = 'pptx-stage';
+  stage.style.width = BASE_W + 'px';
+  stage.style.height = BASE_H + 'px';
+  fit.appendChild(stage);
+  wrap.appendChild(fit);
+
+  const previewer = init(stage, { width: BASE_W, height: BASE_H });
   await previewer.preview(bytes);
+
+  const refit = () => {
+    // Available area: content pane inner box minus its padding.
+    const cs = getComputedStyle(container);
+    const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    const availW = Math.max(1, container.clientWidth - padX);
+    const availH = Math.max(1, container.clientHeight - padY);
+    const scale = Math.min(availW / BASE_W, availH / BASE_H, 1);
+    stage.style.transform = `scale(${scale})`;
+    // Reserve the scaled footprint so the flex column sizes correctly.
+    fit.style.width = BASE_W * scale + 'px';
+    fit.style.height = BASE_H * scale + 'px';
+  };
+  refit();
+  // Re-fit on any change to the content pane's size (window resize, sidebar
+  // drag, etc). The observer disconnects itself once this slide is removed
+  // from the pane (e.g. when another document is opened and clears it).
+  const ro = new ResizeObserver(() => {
+    if (!container.contains(wrap)) {
+      ro.disconnect();
+      return;
+    }
+    refit();
+  });
+  ro.observe(container);
 }
