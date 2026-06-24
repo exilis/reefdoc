@@ -91,5 +91,12 @@ async function viewXlsx(bytes, container) {
   }
 }
 async function viewPptx(bytes, container) {
-  throw new Error('pptx viewer not yet implemented');
+  const { init } = await lazyImport('pptx-preview');
+  container.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'pptx-doc';
+  container.appendChild(wrap);
+  const width = container.clientWidth || 960;
+  const previewer = init(wrap, { width, height: Math.round(width * 0.5625) });
+  await previewer.preview(bytes);
 }
