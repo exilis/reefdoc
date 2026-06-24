@@ -73,7 +73,7 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Content-Type", contentType(abs))
 	_, _ = w.Write(data)
 }
 
@@ -122,5 +122,23 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write([]byte("data: " + msg + "\n\n"))
 			flusher.Flush()
 		}
+	}
+}
+
+// contentType returns the response Content-Type for a served file. Text formats
+// reefdoc renders inline are sent as UTF-8 text; binary document formats get
+// their official MIME type so the browser and PDF.js handle them correctly.
+func contentType(path string) string {
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".pdf":
+		return "application/pdf"
+	case ".docx":
+		return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	case ".xlsx":
+		return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+	case ".pptx":
+		return "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+	default:
+		return "text/plain; charset=utf-8"
 	}
 }
