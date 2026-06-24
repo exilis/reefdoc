@@ -22,6 +22,20 @@ func isMarkdown(name string) bool {
 	return ext == ".md" || ext == ".markdown" || ext == ".allium"
 }
 
+// isViewable reports whether a file should appear in the tree: the text
+// formats reefdoc renders inline plus the binary document formats it previews
+// client-side (pdf/docx/xlsx/pptx).
+func isViewable(name string) bool {
+	if isMarkdown(name) {
+		return true
+	}
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".pdf", ".docx", ".xlsx", ".pptx":
+		return true
+	}
+	return false
+}
+
 // isNoiseDir reports whether a directory should be skipped entirely when
 // listing or searching: dependency/VCS/hidden directories that are never of
 // interest to a markdown viewer and would otherwise dominate a large tree.
@@ -52,7 +66,7 @@ func ListDir(root, relDir string) ([]*Node, error) {
 				continue
 			}
 			nodes = append(nodes, &Node{Name: name, Path: childRel, IsDir: true})
-		} else if isMarkdown(name) {
+		} else if isViewable(name) {
 			n := &Node{Name: name, Path: childRel, IsDir: false}
 			if info, err := e.Info(); err == nil {
 				n.ModTime = info.ModTime().UnixMilli()
