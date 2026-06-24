@@ -74,7 +74,21 @@ async function viewDocx(bytes, container) {
   await docx.renderAsync(bytes, wrap);
 }
 async function viewXlsx(bytes, container) {
-  throw new Error('xlsx viewer not yet implemented');
+  const XLSX = await lazyImport('xlsx');
+  const wb = XLSX.read(bytes, { type: 'array' });
+  container.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'xlsx-doc';
+  container.appendChild(wrap);
+  for (const name of wb.SheetNames) {
+    const heading = document.createElement('h2');
+    heading.textContent = name;
+    wrap.appendChild(heading);
+    const table = document.createElement('div');
+    table.className = 'xlsx-sheet';
+    table.innerHTML = XLSX.utils.sheet_to_html(wb.Sheets[name]);
+    wrap.appendChild(table);
+  }
 }
 async function viewPptx(bytes, container) {
   throw new Error('pptx viewer not yet implemented');
