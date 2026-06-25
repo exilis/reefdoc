@@ -5,6 +5,15 @@ All notable changes to reefdoc are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-06-25
+
+### Added
+- Browse and preview binary document formats in the browser: **PDF**
+  (PDF.js), **DOCX** (docx-preview), **XLSX** (SheetJS), and **PPTX**
+  (lower fidelity). These files now appear in the file tree and open in a
+  tab as a static preview. Rendering is fully client-side; renderer
+  libraries lazy-load from CDN on first use.
+
 ## [0.8.1] - 2026-06-09
 
 ### Added

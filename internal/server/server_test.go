@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -205,5 +206,51 @@ func TestHandleTree_EmptyDirReturnsEmptyArray(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), `"children":[]`) {
 		t.Fatalf("expected literal []; body: %s", rec.Body.String())
+	}
+}
+
+func TestHandleFile_ContentTypeByExtension(t *testing.T) {
+	root := t.TempDir()
+	files := map[string]string{
+		"a.md":        "text/plain; charset=utf-8",
+		"spec.allium": "text/plain; charset=utf-8",
+		"doc.pdf":     "application/pdf",
+		"d.docx":      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		"s.xlsx":      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		"p.pptx":      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+	}
+	for name := range files {
+		if err := os.WriteFile(filepath.Join(root, name), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	s := New(root, NewBroker(), fstest.MapFS{}, nil)
+	for name, wantCT := range files {
+		rec := httptest.NewRecorder()
+		s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/file?path="+name, nil))
+		if rec.Code != 200 {
+			t.Fatalf("%s: status %d", name, rec.Code)
+		}
+		if ct := rec.Header().Get("Content-Type"); ct != wantCT {
+			t.Fatalf("%s: content-type %q, want %q", name, ct, wantCT)
+		}
+	}
+}
+
+func TestHandleFile_BinaryBytesIntact(t *testing.T) {
+	root := t.TempDir()
+	// bytes that are not valid UTF-8 — must survive round-trip unchanged
+	raw := []byte{0x25, 0x50, 0x44, 0x46, 0x00, 0xff, 0xfe, 0x80}
+	if err := os.WriteFile(filepath.Join(root, "b.pdf"), raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := New(root, NewBroker(), fstest.MapFS{}, nil)
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/file?path=b.pdf", nil))
+	if rec.Code != 200 {
+		t.Fatalf("status %d", rec.Code)
+	}
+	if !bytes.Equal(rec.Body.Bytes(), raw) {
+		t.Fatalf("body bytes %v, want %v", rec.Body.Bytes(), raw)
 	}
 }

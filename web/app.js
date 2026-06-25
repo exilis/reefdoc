@@ -5,6 +5,7 @@ import { buildToc, slugify } from './toc.js';
 import { createFavorites, isFavorite, toggleFavorite, listFavorites } from './favorites.js';
 import { isRecent } from './recency.js';
 import { renderAllium } from './allium.js';
+import { getViewer, isBinaryDoc } from './viewers.js';
 
 const render = createRenderer();
 const store = createTabStore();
@@ -259,7 +260,8 @@ function renderNode(node) {
   } else {
     item.dataset.path = node.path;
     if (isRecent(node.modTime)) item.appendChild(makeRecentDot());
-    item.appendChild(makeStar(node.path, false));
+    // Binary documents are static previews and cannot be favorited.
+    if (!isBinaryDoc(node.path)) item.appendChild(makeStar(node.path, false));
     item.addEventListener('click', () => open(node.path, node.name));
   }
   return wrap;
@@ -470,6 +472,19 @@ async function show(path) {
     return;
   }
   tab.missing = false;
+
+  const viewer = getViewer(path);
+  if (viewer) {
+    // Binary document: read raw bytes (no size cap) and render a static
+    // preview. No TOC, no scroll-restore. Best-effort — let failures surface.
+    const bytes = await res.arrayBuffer();
+    if (seq !== showSeq) return;
+    tocEl.innerHTML = '';
+    contentEl.innerHTML = '';
+    await viewer(bytes, contentEl);
+    return;
+  }
+
   const text = await res.text();
   if (seq !== showSeq) return;
   if (text.length > MAX_BYTES) {
@@ -591,6 +606,8 @@ function connectSSE() {
       reloadLevel(msg.path);
     } else if (msg.type === 'change') {
       markRecentInTree(msg.path);
+      // Binary documents are static previews — do not live-reload them.
+      if (isBinaryDoc(msg.path)) return;
       const tab = getTab(store, msg.path);
       if (!tab) return;
       if (msg.path === store.active) show(msg.path);

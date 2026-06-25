@@ -101,6 +101,30 @@ func TestListDir_AlliumFilesAndDir(t *testing.T) {
 	}
 }
 
+func TestListDir_ListsBinaryDocs(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "slides.pptx"))
+	writeFile(t, filepath.Join(root, "report.docx"))
+	writeFile(t, filepath.Join(root, "data.xlsx"))
+	writeFile(t, filepath.Join(root, "manual.pdf"))
+	writeFile(t, filepath.Join(root, "notes.md"))
+	writeFile(t, filepath.Join(root, "ignore.txt"))
+
+	nodes, err := ListDir(root, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, n := range nodes {
+		names = append(names, n.Name)
+	}
+	// files sorted case-insensitively; ignore.txt excluded
+	want := []string{"data.xlsx", "manual.pdf", "notes.md", "report.docx", "slides.pptx"}
+	if !reflect.DeepEqual(names, want) {
+		t.Fatalf("got %v want %v", names, want)
+	}
+}
+
 func TestListDir_FilesCarryModTime(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "a.md"))

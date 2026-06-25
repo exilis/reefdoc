@@ -10,9 +10,9 @@ files change on disk.
 
 You edit markdown in your own editor; `reefdoc` is the preview.
 
-> **Latest release: [v0.8.1](https://github.com/exilis/reefdoc/releases/tag/v0.8.1).**
-> Recent highlights: **clicking a markdown link or an Allium `use` path opens the
-> referenced file in a new tab**; the `.claude` directory is now visible in the tree.
+> **Latest release: [v0.9.0](https://github.com/exilis/reefdoc/releases/tag/v0.9.0).**
+> Recent highlights: **PDF, DOCX, XLSX, and PPTX files now preview in the
+> browser**, rendered fully client-side.
 > Full history in the [changelog](CHANGELOG.md).
 
 ```bash
@@ -39,6 +39,7 @@ go build -o reefdoc . && ./reefdoc ./docs
 - Tabs for multiple open documents
 - GitHub-flavored markdown, code syntax highlighting, and mermaid diagrams
 - [Allium](https://allium.dev) spec files (`.allium`) rendered as formatted cards
+- Preview PDF, DOCX, XLSX, and PPTX files in the browser (rendered client-side)
 - Auto table of contents from document headings
 - Dark / light theme (mermaid follows the theme)
 - Live reload: edit a file in any editor and the open tab updates
