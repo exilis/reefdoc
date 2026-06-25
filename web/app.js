@@ -301,6 +301,90 @@ async function reloadLevel(path) {
   await renderChildrenInto(container, data.children);
 }
 
+// ---- URL <-> active target sync ----
+// The active document path lives in the URL hash (#path=<encoded path>) so a
+// browser reload reopens the same target instead of resetting to the root.
+// Hash (not query string) means no server-side SPA fallback is needed.
+let suppressHashSync = false; // guards against reacting to our own hash writes
+
+function pathFromHash() {
+  const h = location.hash.replace(/^#/, '');
+  if (!h) return null;
+  const params = new URLSearchParams(h);
+  const p = params.get('path');
+  return p || null;
+}
+
+function syncUrl(path, { push = false } = {}) {
+  if (path && pathFromHash() === path) return;  // already in sync
+  if (!path && !pathFromHash()) return;         // already cleared
+  // Clearing: keep the path+query, drop only the hash, so the bar reads clean.
+  const target = path
+    ? '#path=' + encodeURIComponent(path)
+    : location.pathname + location.search;
+  suppressHashSync = true;
+  try {
+    if (push) history.pushState(null, '', target);
+    else history.replaceState(null, '', target);
+  } finally {
+    // pushState/replaceState don't emit hashchange, but clear the guard anyway.
+    setTimeout(() => { suppressHashSync = false; }, 0);
+  }
+}
+
+function titleFor(path) {
+  const tab = getTab(store, path);
+  if (tab) return tab.title;
+  const i = path.lastIndexOf('/');
+  return i >= 0 ? path.slice(i + 1) : path;
+}
+
+// ---- Session persistence ----
+// The full tab session (open tabs, active tab, scroll position) is saved to
+// localStorage so a reload restores every open document, not just the active
+// one. Only durable fields are stored; transient flags (updated, missing) are
+// recomputed at runtime.
+const SESSION_KEY = 'reefdoc-session';
+
+function saveSession() {
+  try {
+    const data = {
+      active: store.active,
+      tabs: store.tabs.map((t) => ({
+        path: t.path,
+        title: t.title,
+        scrollRatio: t.scrollRatio || 0,
+      })),
+    };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+  } catch {
+    // storage full / disabled — degrade silently, session just won't persist.
+  }
+}
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || !Array.isArray(data.tabs)) return null;
+    const tabs = data.tabs
+      .filter((t) => t && typeof t.path === 'string')
+      .map((t) => ({
+        path: t.path,
+        title: typeof t.title === 'string' ? t.title : titleFor(t.path),
+        scrollRatio: typeof t.scrollRatio === 'number' ? t.scrollRatio : 0,
+        updated: false,
+        missing: false,
+      }));
+    if (!tabs.length) return null;
+    const active = tabs.some((t) => t.path === data.active) ? data.active : tabs[0].path;
+    return { tabs, active };
+  } catch {
+    return null;
+  }
+}
+
 // ---- Tabs ----
 function renderTabs() {
   tabbarEl.innerHTML = '';
@@ -326,8 +410,10 @@ function renderTabs() {
 
 async function open(path, title) {
   openTab(store, path, title); // idempotent: adds if new, always activates
+  syncUrl(path, { push: true });
   renderTabs();
   syncWatches();
+  saveSession();
   await show(path);
 }
 
@@ -335,7 +421,9 @@ function activate(path) {
   store.active = path;
   const tab = getTab(store, path);
   if (tab) tab.updated = false;
+  syncUrl(path, { push: true });
   renderTabs();
+  saveSession();
   show(path);
 }
 
@@ -343,8 +431,12 @@ function doClose(path) {
   closeTab(store, path);
   renderTabs();
   syncWatches();
-  if (store.active) show(store.active);
-  else {
+  saveSession();
+  if (store.active) {
+    syncUrl(store.active);
+    show(store.active);
+  } else {
+    syncUrl(null);
     contentEl.innerHTML = '<p class="empty">Select a file from the tree.</p>';
     tocEl.innerHTML = '';
   }
@@ -462,10 +554,14 @@ contentEl.addEventListener('click', e => {
   open(resolved, title);
 });
 
+let scrollSaveTimer = null;
 contentEl.addEventListener('scroll', () => {
   const tab = getTab(store, store.active);
   if (tab && contentEl.scrollHeight > 0) {
     tab.scrollRatio = contentEl.scrollTop / contentEl.scrollHeight;
+    // Debounce: persist the scroll position at most once every 300ms.
+    clearTimeout(scrollSaveTimer);
+    scrollSaveTimer = setTimeout(saveSession, 300);
   }
 });
 
@@ -596,3 +692,43 @@ initSidebarLayout();
 renderFavorites();
 loadRootTree();
 connectSSE();
+
+// Restore the previous session: reopen every tab, restore scroll positions, and
+// activate the right document. A URL hash (deep link / shared URL) takes
+// precedence over the saved active tab.
+const session = loadSession();
+const bootPath = pathFromHash();
+if (session) {
+  store.tabs = session.tabs;
+  // If the URL points at a path that wasn't in the saved session, add it.
+  if (bootPath && !getTab(store, bootPath)) {
+    store.tabs.push({
+      path: bootPath, title: titleFor(bootPath),
+      scrollRatio: 0, updated: false, missing: false,
+    });
+  }
+  store.active = (bootPath && getTab(store, bootPath)) ? bootPath : session.active;
+  syncUrl(store.active);
+  renderTabs();
+  syncWatches();
+  saveSession();
+  show(store.active);
+} else if (bootPath) {
+  open(bootPath, titleFor(bootPath));
+}
+
+// Back/forward navigation: open whatever target the URL now points at.
+window.addEventListener('hashchange', () => {
+  if (suppressHashSync) return; // ignore hash writes we made ourselves
+  const path = pathFromHash();
+  if (path) {
+    if (path !== store.active) open(path, titleFor(path));
+  } else if (store.active) {
+    // Navigated back to a bare URL: clear the view.
+    store.active = null;
+    renderTabs();
+    saveSession();
+    contentEl.innerHTML = '<p class="empty">Select a file from the tree.</p>';
+    tocEl.innerHTML = '';
+  }
+});
