@@ -74,6 +74,10 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", contentType(abs))
+	if r.URL.Query().Get("download") == "1" {
+		name := dispositionFilename(filepath.Base(abs))
+		w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
+	}
 	_, _ = w.Write(data)
 }
 
@@ -141,4 +145,24 @@ func contentType(path string) string {
 	default:
 		return "text/plain; charset=utf-8"
 	}
+}
+
+// dispositionFilename returns a value safe to embed in a quoted
+// Content-Disposition filename. It drops control characters and escapes
+// backslashes and double-quotes so the header cannot be broken or injected.
+// Path safety is enforced elsewhere; this only produces a valid header value.
+func dispositionFilename(base string) string {
+	var b strings.Builder
+	for _, r := range base {
+		switch {
+		case r < 0x20 || r == 0x7f:
+			// drop control characters
+		case r == '"' || r == '\\':
+			b.WriteByte('\\')
+			b.WriteRune(r)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }

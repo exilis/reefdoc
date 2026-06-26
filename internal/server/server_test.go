@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -252,5 +253,75 @@ func TestHandleFile_BinaryBytesIntact(t *testing.T) {
 	}
 	if !bytes.Equal(rec.Body.Bytes(), raw) {
 		t.Fatalf("body bytes %v, want %v", rec.Body.Bytes(), raw)
+	}
+}
+
+func TestHandleFile_DownloadSetsContentDisposition(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "report.pdf"), []byte("PDFDATA"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := New(root, NewBroker(), fstest.MapFS{}, nil)
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/file?path=report.pdf&download=1", nil))
+	if rec.Code != 200 {
+		t.Fatalf("status %d", rec.Code)
+	}
+	got := rec.Header().Get("Content-Disposition")
+	want := `attachment; filename="report.pdf"`
+	if got != want {
+		t.Fatalf("Content-Disposition %q, want %q", got, want)
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "application/pdf" {
+		t.Fatalf("Content-Type %q, want application/pdf", ct)
+	}
+	if rec.Body.String() != "PDFDATA" {
+		t.Fatalf("body %q", rec.Body.String())
+	}
+}
+
+func TestHandleFile_DownloadUsesBasename(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "docs"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "docs", "intro.md"), []byte("# hi"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := New(root, NewBroker(), fstest.MapFS{}, nil)
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/file?path=docs/intro.md&download=1", nil))
+	if got := rec.Header().Get("Content-Disposition"); got != `attachment; filename="intro.md"` {
+		t.Fatalf("Content-Disposition %q, want basename intro.md", got)
+	}
+}
+
+func TestHandleFile_DownloadSanitizesFilename(t *testing.T) {
+	root := t.TempDir()
+	name := "a\"b\x01.md"
+	if err := os.WriteFile(filepath.Join(root, name), []byte("x"), 0o644); err != nil {
+		t.Skipf("OS rejected test filename: %v", err)
+	}
+	s := New(root, NewBroker(), fstest.MapFS{}, nil)
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet,
+		"/api/file?path="+url.PathEscape(name)+"&download=1", nil))
+	cd := rec.Header().Get("Content-Disposition")
+	if strings.ContainsAny(cd[len("attachment; filename=\""):], "\x01") {
+		t.Fatalf("control char leaked into header: %q", cd)
+	}
+	inner := strings.TrimSuffix(strings.TrimPrefix(cd, `attachment; filename="`), `"`)
+	// A raw, unescaped double-quote would break the header. An escaped \" is fine.
+	if strings.Contains(strings.ReplaceAll(inner, `\"`, ""), `"`) {
+		t.Fatalf("raw double-quote leaked into filename value: %q", cd)
+	}
+}
+
+func TestHandleFile_NoDownloadParamOmitsContentDisposition(t *testing.T) {
+	s, _ := newTestServer(t)
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/file?path=a.md", nil))
+	if cd := rec.Header().Get("Content-Disposition"); cd != "" {
+		t.Fatalf("Content-Disposition should be absent for inline requests, got %q", cd)
 	}
 }
