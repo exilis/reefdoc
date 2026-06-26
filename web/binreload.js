@@ -123,9 +123,13 @@ async function defaultRefresh(deps, path) {
   try {
     await viewer(bytes, offscreen);
   } catch {
+    offscreen.remove();                     // discard the failed render
     return; // half-written / bad parse — keep the previous good preview
   }
-  if (seq !== currentSeq()) return;        // superseded; drop the off-screen work
+  if (seq !== currentSeq()) {               // superseded; drop the off-screen work
+    offscreen.remove();
+    return;
+  }
   swap(offscreen);                          // move nodes into contentEl, remove offscreen
   setScrollTop(restoreScrollTop(scrollRatio(prevTop, prevHeight), contentEl.scrollHeight));
 }

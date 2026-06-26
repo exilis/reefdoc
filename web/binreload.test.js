@@ -128,6 +128,7 @@ test('schedule: pending entry is cleared after the timer fires', async () => {
 // Build a refresher whose dependencies are all stubs we can assert against.
 function makeRefreshHarness(overrides = {}) {
   const calls = { viewer: [], swap: 0, scrollSet: [] };
+  calls.offscreenRemoved = 0;
   let seq = 0;
   const contentEl = { scrollTop: 100, scrollHeight: 400 };
   const store = { active: 'a.pdf' };
@@ -139,7 +140,7 @@ function makeRefreshHarness(overrides = {}) {
     getViewer: () => async (bytes, container) => { calls.viewer.push([bytes, container]); },
     isPptx: () => false,
     fetchBytes: async () => ({ ok: true, bytes: new Uint8Array([1, 2, 3]).buffer }),
-    makeOffscreen: () => ({ __offscreen: true }),
+    makeOffscreen: () => ({ __offscreen: true, remove() { calls.offscreenRemoved++; } }),
     swap: () => { calls.swap++; contentEl.scrollHeight = 800; },
     nextSeq: () => ++seq,
     currentSeq: () => seq,
@@ -204,6 +205,25 @@ test('refresh: viewer throwing on off-screen path leaves preview untouched (no s
   const r = createBinaryRefresher(h.deps);
   await r.refresh('a.pdf'); // must not reject
   assert.equal(h.calls.swap, 0);
+});
+
+test('refresh: off-screen container is removed when the viewer throws', async () => {
+  const h = makeRefreshHarness();
+  h.deps.getViewer = () => async () => { throw new Error('half-written file'); };
+  const r = createBinaryRefresher(h.deps);
+  await r.refresh('a.pdf');
+  assert.equal(h.calls.swap, 0);
+  assert.equal(h.calls.offscreenRemoved, 1, 'failed off-screen render must be cleaned up');
+});
+
+test('refresh: off-screen container is removed when seq goes stale after render', async () => {
+  const h = makeRefreshHarness();
+  // Bump seq during the viewer await so the post-render guard fails.
+  h.deps.getViewer = () => async () => { h.bumpSeq(); };
+  const r = createBinaryRefresher(h.deps);
+  await r.refresh('a.pdf');
+  assert.equal(h.calls.swap, 0, 'stale render must not swap');
+  assert.equal(h.calls.offscreenRemoved, 1, 'superseded off-screen render must be cleaned up');
 });
 
 test('refresh: PPTX renders in place (no off-screen, no swap)', async () => {

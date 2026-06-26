@@ -6,7 +6,7 @@ import { createFavorites, isFavorite, toggleFavorite, listFavorites } from './fa
 import { isRecent } from './recency.js';
 import { renderAllium } from './allium.js';
 import { getViewer, isBinaryDoc } from './viewers.js';
-import { createBinaryRefresher } from './binreload.js';
+import { createBinaryRefresher, routeBinaryChange } from './binreload.js';
 
 const render = createRenderer();
 const store = createTabStore();
@@ -652,10 +652,16 @@ function connectSSE() {
         // Binary docs auto-update via the dedicated refresher. Active tab:
         // debounce a re-render. Background tab: mark updated and re-render
         // lazily on activation (same model as markdown).
-        const btab = getTab(store, msg.path);
-        if (!btab) return;
-        if (msg.path === store.active) binaryRefresher.schedule(msg.path);
-        else { btab.updated = true; renderTabs(); }
+        switch (routeBinaryChange({ store, getTab, path: msg.path })) {
+          case 'schedule':
+            binaryRefresher.schedule(msg.path);
+            break;
+          case 'mark-updated': {
+            const btab = getTab(store, msg.path);
+            if (btab) { btab.updated = true; renderTabs(); }
+            break;
+          }
+        }
         return;
       }
       const tab = getTab(store, msg.path);
