@@ -83,9 +83,77 @@ test.afterAll(async () => {
   if (tmp) rmSync(tmp, { recursive: true, force: true });
 });
 
-test('server is reachable and serves the app shell', async ({ page }) => {
-  const res = await page.goto(base + '/');
-  expect(res.ok()).toBeTruthy();
-  // The file tree should list our seeded doc.
-  await expect(page.locator('#tree')).toContainText('doc.md');
+// Open the app with a clean slate: clear persisted session/tab state so no
+// document auto-restores. Must run before app.js reads localStorage, so we
+// navigate, clear, then reload.
+async function freshPage(page) {
+  await page.goto(base + '/');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.waitForSelector('#tree');
+}
+
+// Click a file row in the tree to open it as a tab.
+async function openDoc(page, path) {
+  await page.locator(`#tree .tree-item[data-path="${path}"]`).click();
+}
+
+test('download button is hidden when no document is open', async ({ page }) => {
+  await freshPage(page);
+  await expect(page.locator('#download-btn')).toBeHidden();
+});
+
+test('download button appears after opening a document', async ({ page }) => {
+  await freshPage(page);
+  await openDoc(page, 'doc.md');
+  await expect(page.locator('#download-btn')).toBeVisible();
+});
+
+test('downloads a text document with correct name and contents', async ({ page }) => {
+  await freshPage(page);
+  await openDoc(page, 'doc.md');
+  await expect(page.locator('#download-btn')).toBeVisible();
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.locator('#download-btn').click(),
+  ]);
+  expect(download.suggestedFilename()).toBe('doc.md');
+
+  const savePath = join(tmp, 'downloaded-doc.md');
+  await download.saveAs(savePath);
+  const got = readFileSync(savePath);
+  const want = readFileSync(join(tmp, 'doc.md'));
+  expect(Buffer.compare(got, want)).toBe(0);
+});
+
+test('downloads a binary document with byte-for-byte fidelity', async ({ page }) => {
+  await freshPage(page);
+  await openDoc(page, 'sample.pdf');
+  await expect(page.locator('#download-btn')).toBeVisible();
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.locator('#download-btn').click(),
+  ]);
+  expect(download.suggestedFilename()).toBe('sample.pdf');
+
+  const savePath = join(tmp, 'downloaded-sample.pdf');
+  await download.saveAs(savePath);
+  const got = readFileSync(savePath);
+  const want = readFileSync(join(tmp, 'sample.pdf'));
+  expect(Buffer.compare(got, want)).toBe(0);
+});
+
+test('download button hides again after closing the last tab', async ({ page }) => {
+  await freshPage(page);
+  await openDoc(page, 'doc.md');
+  await expect(page.locator('#download-btn')).toBeVisible();
+
+  // Close every open tab via its × control.
+  const closers = page.locator('.tab .close');
+  for (let n = await closers.count(); n > 0; n = await closers.count()) {
+    await closers.first().click();
+  }
+  await expect(page.locator('#download-btn')).toBeHidden();
 });
