@@ -41,9 +41,14 @@ function freePort() {
 }
 
 // waitForReady polls the server's root until it responds (or times out).
-async function waitForReady(baseURL, deadlineMs = 10_000) {
+// `exited` is a function returning true once the child process has gone away,
+// so a failed bind rejects promptly instead of burning the whole deadline.
+async function waitForReady(baseURL, exited, deadlineMs = 5_000) {
   const start = Date.now();
   for (;;) {
+    if (exited()) {
+      throw new Error('server process exited before becoming ready at ' + baseURL);
+    }
     try {
       const res = await fetch(baseURL + '/');
       if (res.ok) return;
@@ -57,29 +62,55 @@ async function waitForReady(baseURL, deadlineMs = 10_000) {
 
 // startServer launches reefdoc serving `dir` on a free port and resolves once
 // the server answers HTTP. Returns { baseURL, stop() }.
+//
+// freePort() picks a port by binding :0 and immediately releasing it; in the
+// gap before reefdoc binds, another process could steal that port and the spawn
+// would fail to bind. To stay robust we retry the whole pick-port -> spawn ->
+// waitForReady sequence with a fresh port each attempt, and surface the child's
+// captured output if every attempt fails.
 export async function startServer(dir) {
   const bin = ensureBinary();
-  const port = await freePort();
-  const baseURL = `http://127.0.0.1:${port}`;
-  const proc = spawn(bin, ['-addr', `127.0.0.1:${port}`, dir], {
-    cwd: repoRoot,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  let log = '';
-  proc.stdout.on('data', (c) => { log += c.toString(); });
-  proc.stderr.on('data', (c) => { log += c.toString(); });
-  proc.on('exit', (code) => {
-    if (code) log += `\n[server exited ${code}]`;
-  });
+  const maxAttempts = 5;
+  let lastError;
 
-  await waitForReady(baseURL);
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const port = await freePort();
+    const baseURL = `http://127.0.0.1:${port}`;
+    const proc = spawn(bin, ['-addr', `127.0.0.1:${port}`, dir], {
+      cwd: repoRoot,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
 
-  return {
-    baseURL,
-    stop() {
+    let log = '';
+    let exited = false;
+    proc.stdout.on('data', (c) => { log += c.toString(); });
+    proc.stderr.on('data', (c) => { log += c.toString(); });
+    proc.on('exit', (code) => {
+      exited = true;
+      if (code) log += `\n[server exited ${code}]`;
+    });
+
+    try {
+      await waitForReady(baseURL, () => exited);
+      return {
+        baseURL,
+        stop() {
+          try { proc.kill('SIGKILL'); } catch { /* already gone */ }
+        },
+      };
+    } catch (err) {
+      // This attempt failed (early exit or readiness timeout). Kill the child
+      // and try a fresh port. Stash the error + captured log for the final throw.
       try { proc.kill('SIGKILL'); } catch { /* already gone */ }
-    },
-  };
+      lastError = new Error(
+        `${err.message} (attempt ${attempt}/${maxAttempts})\n--- server log ---\n${log}`,
+      );
+    }
+  }
+
+  throw new Error(
+    `server failed to start after ${maxAttempts} attempts.\n${lastError?.message ?? ''}`,
+  );
 }
 
 // makeDocsDir creates a fresh temp directory for a test's documents and returns

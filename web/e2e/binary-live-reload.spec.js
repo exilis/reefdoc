@@ -12,9 +12,10 @@ import { join } from 'node:path';
 import { startServer, makeDocsDir } from './server.js';
 import { installPdfStub } from './fixtures.js';
 
-// Write a "pdf" whose bytes are just the given text. Our stubbed viewer decodes
-// the bytes to text, so the rendered preview shows exactly `content`.
-function writePdf(dir, name, content) {
+// Write a fake "pdf" whose bytes are just the given text (not a real PDF). Our
+// stubbed viewer decodes the bytes to text, so the rendered preview shows
+// exactly `content`.
+function writeFakePdf(dir, name, content) {
   writeFileSync(join(dir, name), content);
 }
 
@@ -44,7 +45,7 @@ test.describe('binary document live-reload', () => {
   });
 
   test('active PDF preview auto-updates when the file changes on disk', async ({ page }) => {
-    writePdf(docs.dir, 'report.pdf', 'VERSION-ONE');
+    writeFakePdf(docs.dir, 'report.pdf', 'VERSION-ONE');
     await page.goto(server.baseURL);
 
     // Open the PDF; the stubbed viewer renders its bytes as text.
@@ -52,12 +53,12 @@ test.describe('binary document live-reload', () => {
     await expect(previewText(page)).toHaveText('VERSION-ONE');
 
     // Change the file on disk — the open, active preview must re-render.
-    writePdf(docs.dir, 'report.pdf', 'VERSION-TWO-CHANGED');
+    writeFakePdf(docs.dir, 'report.pdf', 'VERSION-TWO-CHANGED');
     await expect(previewText(page)).toHaveText('VERSION-TWO-CHANGED');
   });
 
   test('background PDF tab is flagged and re-renders on activation', async ({ page }) => {
-    writePdf(docs.dir, 'report.pdf', 'PDF-ORIGINAL');
+    writeFakePdf(docs.dir, 'report.pdf', 'PDF-ORIGINAL');
     writeFileSync(join(docs.dir, 'notes.md'), '# notes\n');
     await page.goto(server.baseURL);
 
@@ -69,7 +70,7 @@ test.describe('binary document live-reload', () => {
     await expect(page.locator('#content')).toContainText('notes');
 
     // Change the backgrounded PDF on disk.
-    writePdf(docs.dir, 'report.pdf', 'PDF-UPDATED-IN-BG');
+    writeFakePdf(docs.dir, 'report.pdf', 'PDF-UPDATED-IN-BG');
 
     // Its tab gets the "updated" marker, but the visible pane (markdown) does
     // not change.
@@ -84,7 +85,7 @@ test.describe('binary document live-reload', () => {
   });
 
   test('deleting the active PDF shows the missing-file state', async ({ page }) => {
-    writePdf(docs.dir, 'report.pdf', 'SOON-GONE');
+    writeFakePdf(docs.dir, 'report.pdf', 'SOON-GONE');
     await page.goto(server.baseURL);
 
     await openFile(page, 'report.pdf');
