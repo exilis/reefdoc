@@ -35,3 +35,28 @@ test('resolvePath: decodes percent-encoded characters in path', () => {
 test('resolvePath: bare relative href without leading ./', () => {
   assert.equal(resolvePath('docs/guide/intro.md', 'sibling.md'), 'docs/guide/sibling.md');
 });
+
+// downloadUrl lives in app.js which has DOM side-effects at module scope and
+// cannot be imported headlessly. Duplicate the pure function here (matches the
+// resolvePath pattern above).
+function downloadUrl(path) {
+  return '/api/file?path=' + encodeURIComponent(path) + '&download=1';
+}
+
+test('downloadUrl: builds the download URL for a simple path', () => {
+  assert.equal(downloadUrl('a.md'), '/api/file?path=a.md&download=1');
+});
+
+test('downloadUrl: encodes spaces and slashes in nested paths', () => {
+  assert.equal(
+    downloadUrl('my docs/report.pdf'),
+    '/api/file?path=my%20docs%2Freport.pdf&download=1'
+  );
+});
+
+test('downloadUrl: encodes query-delimiter characters in the path', () => {
+  assert.equal(
+    downloadUrl('a&b=c.md'),
+    '/api/file?path=a%26b%3Dc.md&download=1'
+  );
+});

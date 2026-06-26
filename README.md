@@ -40,6 +40,7 @@ go build -o reefdoc . && ./reefdoc ./docs
 - GitHub-flavored markdown, code syntax highlighting, and mermaid diagrams
 - [Allium](https://allium.dev) spec files (`.allium`) rendered as formatted cards
 - Preview PDF, DOCX, XLSX, and PPTX files in the browser (rendered client-side)
+- Download the open document (its original file) with one click
 - Auto table of contents from document headings
 - Dark / light theme (mermaid follows the theme)
 - Live reload: edit a file in any editor and the open tab updates
@@ -52,7 +53,9 @@ plus a vanilla-JS frontend (tree, tabs, markdown/mermaid/highlighting, TOC,
 themes, live reload). See [`docs/specs`](docs/specs) for the design and
 [`docs/plans`](docs/plans) for the implementation plan.
 
-Run the tests with `go test ./...` and `npm test`.
+Run the unit tests with `go test ./...` and `npm test`. The browser end-to-end
+test (Playwright, drives the real binary) runs with `npm run e2e` — it needs Go
+on your PATH and Playwright's Chromium installed (`npx playwright install chromium`).
 
 ## Architecture
 

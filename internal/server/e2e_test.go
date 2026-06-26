@@ -21,15 +21,19 @@ func TestE2E_EndpointsOverHTTP(t *testing.T) {
 	defer srv.Close()
 
 	cases := []struct {
-		path       string
-		wantStatus int
-		wantSub    string
+		path            string
+		wantStatus      int
+		wantSub         string
+		wantDisposition string // expected Content-Disposition; "" means must be absent
 	}{
-		{"/", 200, "app"},
-		{"/api/tree", 200, "doc.md"},
-		{"/api/file?path=doc.md", 200, "# Title"},
-		{"/api/file?path=missing.md", 404, ""},
-		{"/api/file?path=../escape", 400, ""},
+		{"/", 200, "app", ""},
+		{"/api/tree", 200, "doc.md", ""},
+		{"/api/file?path=doc.md", 200, "# Title", ""},
+		{"/api/file?path=missing.md", 404, "", ""},
+		{"/api/file?path=../escape", 400, "", ""},
+		// Download mode: the same file API, over real HTTP, must add the
+		// attachment header so the browser saves rather than renders.
+		{"/api/file?path=doc.md&download=1", 200, "# Title", `attachment; filename="doc.md"`},
 	}
 	for _, c := range cases {
 		resp, err := http.Get(srv.URL + c.path)
@@ -43,6 +47,9 @@ func TestE2E_EndpointsOverHTTP(t *testing.T) {
 		}
 		if c.wantSub != "" && !strings.Contains(string(body), c.wantSub) {
 			t.Errorf("%s: body %q missing %q", c.path, body, c.wantSub)
+		}
+		if got := resp.Header.Get("Content-Disposition"); got != c.wantDisposition {
+			t.Errorf("%s: Content-Disposition %q want %q", c.path, got, c.wantDisposition)
 		}
 	}
 }

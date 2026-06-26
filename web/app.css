@@ -123,3 +123,10 @@ body[data-theme="dark"] .allium-block--contract { border-left-color:#a97ee8; }
   border: 1px solid var(--border);
   padding: 2px 6px;
 }
+
+#tabbar-row { display:flex; align-items:stretch; border-bottom:1px solid var(--border); }
+#tabbar-row #tabbar { flex:1 1 auto; min-width:0; border-bottom:none; }
+#download-btn { flex:0 0 auto; align-self:center; margin:0 8px; padding:4px 8px;
+                font-size:15px; line-height:1; cursor:pointer; background:var(--bg);
+                color:var(--fg); border:1px solid var(--border); border-radius:4px; }
+#download-btn:hover { background:var(--border); }
