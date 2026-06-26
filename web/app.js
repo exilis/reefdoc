@@ -155,6 +155,7 @@ const treeEl = el('tree');
 const tabbarEl = el('tabbar');
 const contentEl = el('content');
 const tocEl = el('toc');
+const downloadBtn = el('download-btn');
 
 function currentTheme() {
   return document.body.getAttribute('data-theme');
@@ -414,6 +415,7 @@ async function open(path, title) {
   openTab(store, path, title); // idempotent: adds if new, always activates
   syncUrl(path, { push: true });
   renderTabs();
+  refreshDownloadButton();
   syncWatches();
   saveSession();
   await show(path);
@@ -425,6 +427,7 @@ function activate(path) {
   if (tab) tab.updated = false;
   syncUrl(path, { push: true });
   renderTabs();
+  refreshDownloadButton();
   saveSession();
   show(path);
 }
@@ -442,6 +445,7 @@ function doClose(path) {
     contentEl.innerHTML = '<p class="empty">Select a file from the tree.</p>';
     tocEl.innerHTML = '';
   }
+  refreshDownloadButton();
 }
 
 // ---- Render a document ----
@@ -558,6 +562,22 @@ function restoreScroll(tab) {
 function downloadUrl(path) {
   return '/api/file?path=' + encodeURIComponent(path) + '&download=1';
 }
+
+// Show the download button only when a document is active; clicking it triggers
+// a native browser download of the active document's original bytes.
+function refreshDownloadButton() {
+  downloadBtn.hidden = !store.active;
+}
+
+downloadBtn.addEventListener('click', () => {
+  if (!store.active) return;
+  const a = document.createElement('a');
+  a.href = downloadUrl(store.active);
+  a.download = ''; // hint the browser to save; server filename still wins
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
 
 function resolvePath(base, href) {
   const dir = base.slice(0, base.lastIndexOf('/') + 1);
@@ -739,6 +759,7 @@ if (session) {
 } else if (bootPath) {
   open(bootPath, titleFor(bootPath));
 }
+refreshDownloadButton();
 
 // Back/forward navigation: open whatever target the URL now points at.
 window.addEventListener('hashchange', () => {
@@ -750,6 +771,7 @@ window.addEventListener('hashchange', () => {
     // Navigated back to a bare URL: clear the view.
     store.active = null;
     renderTabs();
+    refreshDownloadButton();
     saveSession();
     contentEl.innerHTML = '<p class="empty">Select a file from the tree.</p>';
     tocEl.innerHTML = '';
