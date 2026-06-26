@@ -122,6 +122,13 @@ The button is `hidden` by default and only shown when a document is active.
 
 ### JS (`web/app.test.js`)
 
-- `refreshDownloadButton()` toggles the button's visibility correctly based on
-  active state.
-- Clicking the button builds the correct `&download=1` URL for the active path.
+- `downloadUrl(path)` builds the correct `&download=1` URL for the active path,
+  including correct percent-encoding of spaces, slashes, and query-delimiter
+  characters.
+
+Note: `refreshDownloadButton()` and the click handler live in `web/app.js`,
+which has module-scope DOM side effects and cannot be imported headlessly. Per
+the project's established convention (see the `resolvePath` tests), only pure
+functions are unit-tested; the trivial one-line visibility toggle
+(`downloadBtn.hidden = !store.active`) is verified by inspection rather than a
+headless test.

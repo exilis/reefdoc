@@ -151,6 +151,11 @@ func contentType(path string) string {
 // Content-Disposition filename. It drops control characters and escapes
 // backslashes and double-quotes so the header cannot be broken or injected.
 // Path safety is enforced elsewhere; this only produces a valid header value.
+//
+// Non-ASCII filenames are passed through as raw UTF-8 in the quoted filename
+// parameter rather than using the RFC 6266 extended (filename*) form. All
+// current browsers accept and decode raw UTF-8 here, so this is a deliberate
+// simplification, not an oversight.
 func dispositionFilename(base string) string {
 	var b strings.Builder
 	for _, r := range base {
