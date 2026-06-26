@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createTabStore, openTab, closeTab, isOpen, getTab } from './tabs.js';
+import { createTabStore, openTab, closeTab, isOpen, getTab, dirOf, vanishedTabs } from './tabs.js';
 
 test('openTab adds and activates', () => {
   const s = createTabStore();
@@ -56,4 +56,36 @@ test('closing a path that is not open is a no-op', () => {
   closeTab(s, 'ghost.md');
   assert.equal(s.tabs.length, 0);
   assert.equal(s.active, null);
+});
+
+test('dirOf returns parent directory of a file path', () => {
+  assert.equal(dirOf('a.pdf'), '');
+  assert.equal(dirOf('docs/x.md'), 'docs');
+  assert.equal(dirOf('a/b/c.md'), 'a/b');
+});
+
+test('vanishedTabs returns open tabs in dir that are absent from the listing', () => {
+  const s = createTabStore();
+  openTab(s, 'a.pdf', 'a');
+  openTab(s, 'b.pdf', 'b');
+  // a.pdf is gone, b.pdf still present
+  assert.deepEqual(vanishedTabs(s, '', ['b.pdf']), ['a.pdf']);
+});
+
+test('vanishedTabs does not return a tab still present in the listing', () => {
+  const s = createTabStore();
+  openTab(s, 'a.pdf', 'a');
+  assert.deepEqual(vanishedTabs(s, '', ['a.pdf']), []);
+});
+
+test('vanishedTabs ignores tabs in a different directory', () => {
+  const s = createTabStore();
+  openTab(s, 'docs/x.md', 'x'); // lives in docs, not root
+  // refreshing root listing; docs/x.md is absent here but lives elsewhere
+  assert.deepEqual(vanishedTabs(s, '', []), []);
+});
+
+test('vanishedTabs on an empty store returns []', () => {
+  const s = createTabStore();
+  assert.deepEqual(vanishedTabs(s, '', []), []);
 });

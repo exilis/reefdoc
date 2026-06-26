@@ -28,3 +28,21 @@ export function isOpen(store, path) {
 export function getTab(store, path) {
   return store.tabs.find((t) => t.path === path) || null;
 }
+
+// dirOf returns the parent directory (slash path, '' for root) of a file path.
+export function dirOf(path) {
+  const i = path.lastIndexOf('/');
+  return i === -1 ? '' : path.slice(0, i);
+}
+
+// vanishedTabs returns the paths of open tabs whose file lived directly in
+// `dir` but is no longer present in `presentPaths` (the freshly-listed children
+// of that directory). Used to detect deletions: a `tree` event refreshes a
+// directory listing, and any open tab from that directory missing from the new
+// listing was deleted.
+export function vanishedTabs(store, dir, presentPaths) {
+  const present = new Set(presentPaths);
+  return store.tabs
+    .map((t) => t.path)
+    .filter((p) => dirOf(p) === dir && !present.has(p));
+}

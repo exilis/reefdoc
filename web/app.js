@@ -1,6 +1,6 @@
 import mermaid from 'mermaid';
 import { createRenderer } from './render.js';
-import { createTabStore, openTab, closeTab, getTab } from './tabs.js';
+import { createTabStore, openTab, closeTab, getTab, vanishedTabs, dirOf } from './tabs.js';
 import { buildToc, slugify } from './toc.js';
 import { createFavorites, isFavorite, toggleFavorite, listFavorites } from './favorites.js';
 import { isRecent } from './recency.js';
@@ -294,6 +294,19 @@ function collapseDir(path, kids, item) {
   syncWatches();
 }
 
+// Mark an open tab whose file vanished from disk as missing. If it's the active
+// tab, show the missing state in the content pane (mirrors show()'s 404 path).
+function markTabMissing(path) {
+  const tab = getTab(store, path);
+  if (!tab) return;
+  tab.missing = true;
+  renderTabs();
+  if (path === store.active) {
+    contentEl.innerHTML = '<p class="empty">This file no longer exists.</p>';
+    tocEl.innerHTML = '';
+  }
+}
+
 // Reload just one directory level (on a tree SSE event for that dir).
 async function reloadLevel(path) {
   const container = levelContainers.get(path);
@@ -302,6 +315,12 @@ async function reloadLevel(path) {
   const data = await fetchLevel(path);
   if (!data) return;
   await renderChildrenInto(container, data.children);
+  // Detect deletions: any open tab from this directory that is no longer in
+  // the listing was removed on disk — show the missing state.
+  const presentPaths = data.children.filter((n) => !n.isDir).map((n) => n.path);
+  for (const gone of vanishedTabs(store, path, presentPaths)) {
+    markTabMissing(gone);
+  }
 }
 
 // ---- URL <-> active target sync ----
@@ -542,13 +561,7 @@ const binaryRefresher = createBinaryRefresher({
   nextSeq: () => ++showSeq,
   currentSeq: () => showSeq,
   setScrollTop: (v) => { contentEl.scrollTop = v; },
-  onMissing: (path) => {
-    const tab = getTab(store, path);
-    if (tab) tab.missing = true;
-    renderTabs();
-    contentEl.innerHTML = '<p class="empty">This file no longer exists.</p>';
-    tocEl.innerHTML = '';
-  },
+  onMissing: (path) => markTabMissing(path),
 });
 
 function assignHeadingIds() {
