@@ -29,10 +29,18 @@ function freePort() {
   });
 }
 
-// Poll GET / until 200 or timeout.
-async function waitForServer(base, timeoutMs = 10_000) {
+// Poll GET / until 200 or timeout. Bails fast (with the real reason) if the
+// spawned binary exits before becoming ready, instead of waiting the full
+// timeout and throwing a vague message.
+async function waitForServer(base, proc, timeoutMs = 10_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
+    if (proc?.exitInfo) {
+      throw new Error(
+        `reefdoc exited before becoming ready (code=${proc.exitInfo.code}, ` +
+        `signal=${proc.exitInfo.signal}); see stderr above`
+      );
+    }
     try {
       const res = await fetch(base + '/');
       if (res.ok) return;
@@ -66,7 +74,8 @@ test.beforeAll(async () => {
     cwd: repoRoot,
     stdio: 'inherit',
   });
-  await waitForServer(base);
+  proc.on('exit', (code, signal) => { proc.exitInfo = { code, signal }; });
+  await waitForServer(base, proc);
 });
 
 test.afterAll(async () => {
