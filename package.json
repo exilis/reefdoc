@@ -2,8 +2,12 @@
   "name": "reefdoc-web-tests",
   "private": true,
   "type": "module",
-  "scripts": { "test": "node --test" },
+  "scripts": {
+    "test": "node --test",
+    "e2e": "playwright test"
+  },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "highlight.js": "11.9.0",
     "markdown-it": "14.1.0",
     "markdown-it-task-lists": "2.1.1"

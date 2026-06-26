@@ -53,7 +53,9 @@ plus a vanilla-JS frontend (tree, tabs, markdown/mermaid/highlighting, TOC,
 themes, live reload). See [`docs/specs`](docs/specs) for the design and
 [`docs/plans`](docs/plans) for the implementation plan.
 
-Run the tests with `go test ./...` and `npm test`.
+Run the tests with `go test ./...` and `npm test`. End-to-end browser tests
+(Playwright) live in `web/e2e/`; run them with `npm run e2e` (first time:
+`npx playwright install chromium`).
 
 ## Architecture
 
