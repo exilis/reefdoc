@@ -6,6 +6,7 @@ import { createFavorites, isFavorite, toggleFavorite, listFavorites } from './fa
 import { isRecent } from './recency.js';
 import { renderAllium } from './allium.js';
 import { getViewer, isBinaryDoc } from './viewers.js';
+import { createBinaryRefresher } from './binreload.js';
 
 const render = createRenderer();
 const store = createTabStore();
@@ -501,6 +502,47 @@ async function show(path) {
   restoreScroll(tab);
 }
 
+// ---- Binary document live-reload (auto-update) ----
+// Builds the off-screen container the off-screen viewers render into: attached
+// to the DOM (so layout-dependent viewers measure correctly) but visually
+// hidden and sized to match contentEl. Removed by swap().
+function makeOffscreenContainer() {
+  const off = document.createElement('div');
+  off.style.position = 'absolute';
+  off.style.left = '-99999px';
+  off.style.top = '0';
+  off.style.width = contentEl.clientWidth + 'px';
+  off.style.height = contentEl.clientHeight + 'px';
+  off.style.overflow = 'auto';
+  document.body.appendChild(off);
+  return off;
+}
+
+function swapOffscreenIntoContent(off) {
+  contentEl.innerHTML = '';
+  while (off.firstChild) contentEl.appendChild(off.firstChild);
+  off.remove();
+}
+
+const binaryRefresher = createBinaryRefresher({
+  setTimeout: (cb, ms) => setTimeout(cb, ms),
+  clearTimeout: (id) => clearTimeout(id),
+  store,
+  contentEl,
+  getViewer,
+  isPptx: (path) => path.toLowerCase().endsWith('.pptx'),
+  fetchBytes: async (path) => {
+    const res = await fetch('/api/file?path=' + encodeURIComponent(path));
+    if (!res.ok) return { ok: false };
+    return { ok: true, bytes: await res.arrayBuffer() };
+  },
+  makeOffscreen: makeOffscreenContainer,
+  swap: swapOffscreenIntoContent,
+  nextSeq: () => ++showSeq,
+  currentSeq: () => showSeq,
+  setScrollTop: (v) => { contentEl.scrollTop = v; },
+});
+
 function assignHeadingIds() {
   const seen = new Set();
   contentEl.querySelectorAll('h1,h2,h3').forEach((h) => {
@@ -606,8 +648,16 @@ function connectSSE() {
       reloadLevel(msg.path);
     } else if (msg.type === 'change') {
       markRecentInTree(msg.path);
-      // Binary documents are static previews — do not live-reload them.
-      if (isBinaryDoc(msg.path)) return;
+      if (isBinaryDoc(msg.path)) {
+        // Binary docs auto-update via the dedicated refresher. Active tab:
+        // debounce a re-render. Background tab: mark updated and re-render
+        // lazily on activation (same model as markdown).
+        const btab = getTab(store, msg.path);
+        if (!btab) return;
+        if (msg.path === store.active) binaryRefresher.schedule(msg.path);
+        else { btab.updated = true; renderTabs(); }
+        return;
+      }
       const tab = getTab(store, msg.path);
       if (!tab) return;
       if (msg.path === store.active) show(msg.path);
