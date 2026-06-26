@@ -53,7 +53,9 @@ plus a vanilla-JS frontend (tree, tabs, markdown/mermaid/highlighting, TOC,
 themes, live reload). See [`docs/specs`](docs/specs) for the design and
 [`docs/plans`](docs/plans) for the implementation plan.
 
-Run the tests with `go test ./...` and `npm test`.
+Run the unit tests with `go test ./...` and `npm test`. The browser end-to-end
+test (Playwright, drives the real binary) runs with `npm run e2e` — it needs Go
+on your PATH and Playwright's Chromium installed (`npx playwright install chromium`).
 
 ## Architecture
 
