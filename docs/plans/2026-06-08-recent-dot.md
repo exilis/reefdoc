@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go (`net/http`, `os`) for the backend; vanilla ES-module JavaScript with `node:test` for frontend unit tests.
 
-**Source spec:** `docs/superpowers/specs/2026-06-08-recent-dot-design.md`
+**Source spec:** `docs/specs/2026-06-08-recent-dot-design.md`
 
 ---
 
@@ -299,7 +299,7 @@ go build -o reefdoc . && ./reefdoc ./docs
 
 Then in the browser:
 1. Confirm files edited within the last 24h show an accent dot at the right of their row; older files show none; directories never show one.
-2. With the app open, run `touch docs/superpowers/specs/2026-06-08-recent-dot-design.md` (or edit any visible `.md`) and confirm the dot appears on that row **without** reloading the page.
+2. With the app open, run `touch docs/specs/2026-06-08-recent-dot-design.md` (or edit any visible `.md`) and confirm the dot appears on that row **without** reloading the page.
 3. Confirm the dot color matches the theme accent in both light and dark mode (toggle theme).
 
 - [ ] **Step 7: Confirm frontend tests still pass**
