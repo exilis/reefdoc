@@ -10,8 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Download the currently-open document with one click via a button in the tab
   bar. Works for every document type reefdoc opens (markdown, Allium, code,
-  PDF, DOCX, XLSX, PPTX); the server streams the original file unchanged via a
-  download mode on the file API.
+  PDF, DOCX, XLSX, PPTX), and you get the original file back unchanged.
 
 ## [0.9.0] - 2026-06-25
 
