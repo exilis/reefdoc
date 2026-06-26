@@ -52,6 +52,30 @@ func TestWatcher_EmitsChangeOnWrite(t *testing.T) {
 	})
 }
 
+func TestWatcher_EmitsChangeOnBinaryWrite(t *testing.T) {
+	root := t.TempDir()
+	file := filepath.Join(root, "report.pdf")
+	if err := os.WriteFile(file, []byte("%PDF-1.4 one"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	b := NewBroker()
+	w, err := NewWatcher(root, b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go w.Run()
+	defer w.Close()
+	sub := b.Subscribe()
+
+	time.Sleep(50 * time.Millisecond)
+	if err := os.WriteFile(file, []byte("%PDF-1.4 two"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	waitForMsg(t, sub, func(m map[string]string) bool {
+		return m["type"] == "change" && m["path"] == "report.pdf"
+	})
+}
+
 func TestWatcher_EmitsTreeOnCreate(t *testing.T) {
 	root := t.TempDir()
 	b := NewBroker()

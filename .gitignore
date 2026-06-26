@@ -7,6 +7,12 @@
 /node_modules/
 /package-lock.json
 
+# Playwright E2E artifacts (dev-only; never committed)
+/test-results/
+/playwright-report/
+/blob-report/
+/.last-run.json
+
 # Editor / OS
 .DS_Store
 

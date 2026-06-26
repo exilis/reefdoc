@@ -1,11 +1,12 @@
 import mermaid from 'mermaid';
 import { createRenderer } from './render.js';
-import { createTabStore, openTab, closeTab, getTab } from './tabs.js';
+import { createTabStore, openTab, closeTab, getTab, vanishedTabs } from './tabs.js';
 import { buildToc, slugify } from './toc.js';
 import { createFavorites, isFavorite, toggleFavorite, listFavorites } from './favorites.js';
 import { isRecent } from './recency.js';
 import { renderAllium } from './allium.js';
 import { getViewer, isBinaryDoc } from './viewers.js';
+import { createBinaryRefresher, routeBinaryChange } from './binreload.js';
 
 const render = createRenderer();
 const store = createTabStore();
@@ -294,6 +295,19 @@ function collapseDir(path, kids, item) {
   syncWatches();
 }
 
+// Mark an open tab whose file vanished from disk as missing. If it's the active
+// tab, show the missing state in the content pane (mirrors show()'s 404 path).
+function markTabMissing(path) {
+  const tab = getTab(store, path);
+  if (!tab) return;
+  tab.missing = true;
+  renderTabs();
+  if (path === store.active) {
+    contentEl.innerHTML = '<p class="empty">This file no longer exists.</p>';
+    tocEl.innerHTML = '';
+  }
+}
+
 // Reload just one directory level (on a tree SSE event for that dir).
 async function reloadLevel(path) {
   const container = levelContainers.get(path);
@@ -302,6 +316,12 @@ async function reloadLevel(path) {
   const data = await fetchLevel(path);
   if (!data) return;
   await renderChildrenInto(container, data.children);
+  // Detect deletions: any open tab from this directory that is no longer in
+  // the listing was removed on disk — show the missing state.
+  const presentPaths = data.children.filter((n) => !n.isDir).map((n) => n.path);
+  for (const gone of vanishedTabs(store, path, presentPaths)) {
+    markTabMissing(gone);
+  }
 }
 
 // ---- URL <-> active target sync ----
@@ -505,6 +525,49 @@ async function show(path) {
   restoreScroll(tab);
 }
 
+// ---- Binary document live-reload (auto-update) ----
+// Builds the off-screen container the off-screen viewers render into: attached
+// to the DOM (so layout-dependent viewers measure correctly) but visually
+// hidden and sized to match contentEl. Removed by swap().
+function makeOffscreenContainer() {
+  const off = document.createElement('div');
+  off.style.position = 'absolute';
+  off.style.left = '-99999px';
+  off.style.top = '0';
+  off.style.width = contentEl.clientWidth + 'px';
+  off.style.height = contentEl.clientHeight + 'px';
+  off.style.overflow = 'auto';
+  document.body.appendChild(off);
+  return off;
+}
+
+function swapOffscreenIntoContent(off) {
+  contentEl.innerHTML = '';
+  while (off.firstChild) contentEl.appendChild(off.firstChild);
+  off.remove();
+}
+
+const binaryRefresher = createBinaryRefresher({
+  setTimeout: (cb, ms) => setTimeout(cb, ms),
+  clearTimeout: (id) => clearTimeout(id),
+  store,
+  contentEl,
+  getViewer,
+  isPptx: (path) => path.toLowerCase().endsWith('.pptx'),
+  fetchBytes: async (path) => {
+    const res = await fetch('/api/file?path=' + encodeURIComponent(path));
+    if (res.status === 404) return { ok: false, missing: true };
+    if (!res.ok) return { ok: false };
+    return { ok: true, bytes: await res.arrayBuffer() };
+  },
+  makeOffscreen: makeOffscreenContainer,
+  swap: swapOffscreenIntoContent,
+  nextSeq: () => ++showSeq,
+  currentSeq: () => showSeq,
+  setScrollTop: (v) => { contentEl.scrollTop = v; },
+  onMissing: (path) => markTabMissing(path),
+});
+
 function assignHeadingIds() {
   const seen = new Set();
   contentEl.querySelectorAll('h1,h2,h3').forEach((h) => {
@@ -632,8 +695,22 @@ function connectSSE() {
       reloadLevel(msg.path);
     } else if (msg.type === 'change') {
       markRecentInTree(msg.path);
-      // Binary documents are static previews — do not live-reload them.
-      if (isBinaryDoc(msg.path)) return;
+      if (isBinaryDoc(msg.path)) {
+        // Binary docs auto-update via the dedicated refresher. Active tab:
+        // debounce a re-render. Background tab: mark updated and re-render
+        // lazily on activation (same model as markdown).
+        switch (routeBinaryChange({ store, getTab, path: msg.path })) {
+          case 'schedule':
+            binaryRefresher.schedule(msg.path);
+            break;
+          case 'mark-updated': {
+            const btab = getTab(store, msg.path);
+            if (btab) { btab.updated = true; renderTabs(); }
+            break;
+          }
+        }
+        return;
+      }
       const tab = getTab(store, msg.path);
       if (!tab) return;
       if (msg.path === store.active) show(msg.path);

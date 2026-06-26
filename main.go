@@ -13,7 +13,7 @@ import (
 	"github.com/exilis/reefdoc/internal/server"
 )
 
-//go:embed web/index.html web/app.css web/app.js web/allium.js web/render.js web/tabs.js web/toc.js web/favorites.js web/recency.js web/viewers.js
+//go:embed web/index.html web/app.css web/app.js web/allium.js web/render.js web/tabs.js web/toc.js web/favorites.js web/recency.js web/viewers.js web/binreload.js
 var webFS embed.FS
 
 // version is overridden at release time via -ldflags "-X main.version=<tag>".

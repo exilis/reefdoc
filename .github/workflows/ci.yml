@@ -52,5 +52,12 @@ jobs:
         with:
           node-version: '22'
       - run: npm install
+      # Install only the Chromium browser plus its OS dependencies.
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
