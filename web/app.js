@@ -533,6 +533,7 @@ const binaryRefresher = createBinaryRefresher({
   isPptx: (path) => path.toLowerCase().endsWith('.pptx'),
   fetchBytes: async (path) => {
     const res = await fetch('/api/file?path=' + encodeURIComponent(path));
+    if (res.status === 404) return { ok: false, missing: true };
     if (!res.ok) return { ok: false };
     return { ok: true, bytes: await res.arrayBuffer() };
   },
@@ -541,6 +542,13 @@ const binaryRefresher = createBinaryRefresher({
   nextSeq: () => ++showSeq,
   currentSeq: () => showSeq,
   setScrollTop: (v) => { contentEl.scrollTop = v; },
+  onMissing: (path) => {
+    const tab = getTab(store, path);
+    if (tab) tab.missing = true;
+    renderTabs();
+    contentEl.innerHTML = '<p class="empty">This file no longer exists.</p>';
+    tocEl.innerHTML = '';
+  },
 });
 
 function assignHeadingIds() {

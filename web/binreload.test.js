@@ -129,6 +129,7 @@ test('schedule: pending entry is cleared after the timer fires', async () => {
 function makeRefreshHarness(overrides = {}) {
   const calls = { viewer: [], swap: 0, scrollSet: [] };
   calls.offscreenRemoved = 0;
+  calls.missing = [];
   let seq = 0;
   const contentEl = { scrollTop: 100, scrollHeight: 400 };
   const store = { active: 'a.pdf' };
@@ -145,6 +146,7 @@ function makeRefreshHarness(overrides = {}) {
     nextSeq: () => ++seq,
     currentSeq: () => seq,
     setScrollTop: (v) => { calls.scrollSet.push(v); contentEl.scrollTop = v; },
+    onMissing: (path) => { calls.missing.push(path); },
     ...overrides,
   };
   return { deps, calls, contentEl, store, getSeq: () => seq, bumpSeq: () => ++seq };
@@ -240,6 +242,34 @@ test('refresh: PPTX renders in place (no off-screen, no swap)', async () => {
   assert.equal(rendered.length, 1);
   assert.equal(rendered[0], h.contentEl);
   assert.equal(h.calls.swap, 0, 'PPTX does not use the swap path');
+});
+
+test('refresh: a deleted (404/missing) active file shows the missing state, no render', async () => {
+  const h = makeRefreshHarness();
+  h.deps.fetchBytes = async () => ({ ok: false, missing: true });
+  const r = createBinaryRefresher(h.deps);
+  await r.refresh('a.pdf');
+  assert.deepEqual(h.calls.missing, ['a.pdf'], 'onMissing called with the path');
+  assert.equal(h.calls.viewer.length, 0, 'no viewer render on missing');
+  assert.equal(h.calls.swap, 0, 'no swap on missing');
+});
+
+test('refresh: non-404 fetch failure ({ok:false}) keeps preview and does NOT show missing', async () => {
+  const h = makeRefreshHarness();
+  h.deps.fetchBytes = async () => ({ ok: false });
+  const r = createBinaryRefresher(h.deps);
+  await r.refresh('a.pdf');
+  assert.equal(h.calls.missing.length, 0, 'transient failure is not a missing file');
+  assert.equal(h.calls.viewer.length, 0);
+  assert.equal(h.calls.swap, 0);
+});
+
+test('refresh: missing state is suppressed if a newer render superseded this one', async () => {
+  const h = makeRefreshHarness();
+  h.deps.fetchBytes = async () => { h.bumpSeq(); return { ok: false, missing: true }; };
+  const r = createBinaryRefresher(h.deps);
+  await r.refresh('a.pdf');
+  assert.equal(h.calls.missing.length, 0, 'stale refresh must not clobber a newer render with missing UI');
 });
 
 test('schedule: a throwing refresh never escapes the scheduler', async () => {

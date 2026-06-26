@@ -82,7 +82,7 @@ export function createBinaryRefresher(deps) {
 // Must never reject: the debounce timer calls it without awaiting.
 async function defaultRefresh(deps, path) {
   const { store, contentEl, getViewer, isPptx, fetchBytes, makeOffscreen,
-          swap, nextSeq, currentSeq, setScrollTop } = deps;
+          swap, nextSeq, currentSeq, setScrollTop, onMissing } = deps;
 
   // Tab may have changed during the debounce window.
   if (path !== store.active) return;
@@ -97,7 +97,13 @@ async function defaultRefresh(deps, path) {
   } catch {
     return; // network error — keep the current preview
   }
-  if (!res || !res.ok) return;             // file gone / error — keep preview
+  if (res && res.missing) {
+    // file deleted — show the missing state via the injected callback, then stop.
+    if (seq !== currentSeq()) return;      // superseded; don't clobber a newer render
+    onMissing(path);
+    return;
+  }
+  if (!res || !res.ok) return;             // transient error — keep current preview
   if (seq !== currentSeq()) return;        // superseded by a newer render
 
   const bytes = res.bytes;
