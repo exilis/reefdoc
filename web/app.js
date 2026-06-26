@@ -1,6 +1,6 @@
 import mermaid from 'mermaid';
 import { createRenderer } from './render.js';
-import { createTabStore, openTab, closeTab, getTab, vanishedTabs, dirOf } from './tabs.js';
+import { createTabStore, openTab, closeTab, getTab, vanishedTabs } from './tabs.js';
 import { buildToc, slugify } from './toc.js';
 import { createFavorites, isFavorite, toggleFavorite, listFavorites } from './favorites.js';
 import { isRecent } from './recency.js';
