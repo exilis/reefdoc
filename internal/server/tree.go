@@ -24,7 +24,8 @@ func isMarkdown(name string) bool {
 
 // isViewable reports whether a file should appear in the tree: the text
 // formats reefdoc renders inline plus the binary document formats it previews
-// client-side (pdf/docx/xlsx/pptx).
+// client-side (pdf/docx/xlsx/pptx). It also gates live-reload "change" events
+// (see watcher.go), so narrowing it affects both tree listing and auto-update.
 func isViewable(name string) bool {
 	if isMarkdown(name) {
 		return true

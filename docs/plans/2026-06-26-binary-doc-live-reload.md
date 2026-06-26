@@ -4,7 +4,7 @@
 
 **Goal:** Make open PDF/DOCX/XLSX/PPTX previews auto-update when the file changes on disk, mirroring how markdown already live-reloads.
 
-**Architecture:** Frontend-only. The Go server already emits `change` SSE events for every watched file; `web/app.js` currently ignores them for binary docs. We add a small pure module (`web/binreload.js`) holding the testable refresh logic (debounce scheduler, change routing decision, scroll-ratio math, seq-guarded refresh), then wire it into `app.js`'s existing SSE handler and remove the early-return guard. PDF/DOCX/XLSX render off-screen and swap in (no flicker, mid-write safe); PPTX re-renders in place.
+**Architecture:** Mostly frontend. We add a small pure module (`web/binreload.js`) holding the testable refresh logic (debounce scheduler, change routing decision, scroll-ratio math, seq-guarded refresh), then wire it into `app.js`'s existing SSE handler and remove the early-return guard. PDF/DOCX/XLSX render off-screen and swap in (no flicker, mid-write safe); PPTX re-renders in place. **Correction (added during execution):** the plan originally assumed the Go server already emitted `change` SSE events for every watched file. It did not — the watcher gated on `isMarkdown`, so a one-line backend fix was required (`internal/server/watcher.go`: gate on `isViewable`) plus a watcher test. See Task 6.5.
 
 **Tech Stack:** Vanilla ES-module frontend; `node --test` for unit tests; Go `//go:embed` ships the asset; `go test` smoke-tests asset serving. No new dependencies.
 
@@ -734,6 +734,30 @@ Expected: PASS — all packages.
 git add main.go
 git commit -m "build: embed web/binreload.js in the binary"
 ```
+
+---
+
+### Task 6.5: Backend fix — watcher emits `change` for binary documents
+
+> **Added during execution.** The original plan assumed "No Go changes" because
+> the design wrongly believed the server emitted `change` for every watched
+> file. Verification (Task 8) proved binary writes emitted no `change` event:
+> `internal/server/watcher.go` gated change-emit on `isMarkdown(ev.Name)`.
+
+**Files:**
+- Modify: `internal/server/watcher.go` (change-emit predicate + doc comment)
+- Test: `internal/server/watcher_test.go`
+
+- [x] **Step 1:** Add a failing watcher test asserting a `.pdf` write emits a
+  `change` event (modeled on the existing markdown change test).
+- [x] **Step 2:** In `watcher.go`, change the change-emit predicate from
+  `isMarkdown(ev.Name)` to `isViewable(ev.Name)` (already defined in `tree.go`,
+  covering markdown + the four binary formats). Update the `Watcher` doc
+  comment accordingly. The tree-event logic is unchanged.
+- [x] **Step 3:** `go test ./internal/server/ -v` → new test passes, existing
+  markdown change tests still pass.
+- [x] **Step 4:** `go test ./...` → all packages ok.
+- [x] **Step 5:** Commit `fix(watcher): emit change events for binary documents, not just markdown`.
 
 ---
 

@@ -5,6 +5,20 @@ All notable changes to reefdoc are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-06-26
+
+### Added
+- Binary document previews (PDF, DOCX, XLSX, PPTX) now **auto-update** when the
+  file changes on disk, matching markdown live-reload. The active preview
+  re-renders automatically; background tabs are flagged and re-render when you
+  switch to them. PDF/DOCX/XLSX render off-screen and swap in (no flicker, and a
+  half-written file leaves the previous preview intact); PPTX re-renders in
+  place. Scroll position is best-effort preserved across a refresh.
+
+### Fixed
+- The file watcher now emits change events for binary document formats, not
+  just markdown, so binary previews actually receive live updates.
+
 ## [0.9.0] - 2026-06-25
 
 ### Added

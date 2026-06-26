@@ -13,10 +13,15 @@ the tab. This was a deliberate non-goal of the original office/PDF viewing work
 (see `2026-06-25-office-pdf-viewing-design.md`, "Non-Goals"); this design
 reverses that decision for live-reload and scroll-restore.
 
-The change is **frontend-only**. The Go server already emits a `change` SSE
-event for every watched file regardless of type; the binary path is simply
-ignored on the client. This work removes that guard and adds a dedicated,
-debounced, flicker-free refresh path for binary documents.
+The change is **mostly frontend**. It removes the client guard and adds a
+dedicated, debounced, flicker-free refresh path for binary documents.
+
+> **Correction (post-implementation):** this design originally assumed the Go
+> server already emitted a `change` SSE event for every watched file regardless
+> of type. That was wrong — the watcher gated change events on `isMarkdown`, so
+> binary documents never emitted one. A one-line backend fix was required
+> (`internal/server/watcher.go`: gate on `isViewable` instead of `isMarkdown`),
+> plus a watcher test. See the "Backend" row in Key Decisions.
 
 ## Goals
 
@@ -55,7 +60,7 @@ debounced, flicker-free refresh path for binary documents.
 | Burst handling | Debounce (~250ms) **and** `showSeq` guard | Debounce collapses write bursts and dodges most mid-write reads; the sequence guard supersedes an in-flight render if a newer trigger or tab-switch occurs. |
 | PPTX refresh | In-place exception (clear + render into `contentEl`) | PPTX is the lowest-fidelity viewer and least likely to be live-regenerated; its `ResizeObserver` fitting reads the live container. Keeps `app.js` free of viewer internals. PDF/DOCX/XLSX use the off-screen swap. |
 | Code structure | Dedicated `refreshBinary(path)` + scheduler, separate from `show()` | Scroll capture, off-screen swap, and debounce are live-refresh concerns that don't apply on first open. Keeps `show()` simple. |
-| Backend | No change | Server already emits `change` for all watched files. |
+| Backend | One-line fix | The watcher gated `change` events on `isMarkdown`; it now gates on `isViewable` (markdown + the four binary formats) so binary writes emit `change`. (Original design wrongly assumed no backend change was needed.) |
 
 ## Architecture
 

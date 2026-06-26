@@ -42,7 +42,8 @@ go build -o reefdoc . && ./reefdoc ./docs
 - Preview PDF, DOCX, XLSX, and PPTX files in the browser (rendered client-side)
 - Auto table of contents from document headings
 - Dark / light theme (mermaid follows the theme)
-- Live reload: edit a file in any editor and the open tab updates
+- Live reload: edit a file in any editor and the open tab updates — including
+  PDF, DOCX, XLSX, and PPTX previews
 - Hyperlinks between documents — markdown links and Allium `use` paths open in a new tab
 
 ## Status
