@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   re-renders automatically; background tabs are flagged and re-render when you
   switch to them. PDF/DOCX/XLSX render off-screen and swap in (no flicker, and a
   half-written file leaves the previous preview intact); PPTX re-renders in
-  place. Scroll position is best-effort preserved across a refresh.
+  place. Scroll position is best-effort preserved across a refresh. Deleting an
+  open binary file now shows the "file no longer exists" state, like markdown.
 
 ### Fixed
 - The file watcher now emits change events for binary document formats, not
