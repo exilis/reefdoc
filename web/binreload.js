@@ -69,7 +69,62 @@ export function createBinaryRefresher(deps) {
   };
 }
 
-// defaultRefresh is implemented in Task 4.
-async function defaultRefresh(_deps, _path) {
-  throw new Error('defaultRefresh not implemented yet');
+// defaultRefresh re-renders an already-open, ACTIVE binary document after its
+// file changed on disk. Behavior (see design spec):
+//   - latest-wins via the shared seq guard (nextSeq/currentSeq)
+//   - proportional scroll capture + restore
+//   - PDF/DOCX/XLSX: render off-screen, swap in only on success (no flicker,
+//     mid-write safe — a failed parse leaves the previous preview intact)
+//   - PPTX: render in place into the live contentEl (its ResizeObserver reads
+//     the live container), accepting brief flicker
+// Must never reject: the debounce timer calls it without awaiting.
+async function defaultRefresh(deps, path) {
+  const { store, contentEl, getViewer, isPptx, fetchBytes, makeOffscreen,
+          swap, nextSeq, currentSeq, setScrollTop } = deps;
+
+  // Tab may have changed during the debounce window.
+  if (path !== store.active) return;
+
+  const seq = nextSeq();
+  const prevTop = contentEl.scrollTop;
+  const prevHeight = contentEl.scrollHeight;
+
+  let res;
+  try {
+    res = await fetchBytes(path);
+  } catch {
+    return; // network error — keep the current preview
+  }
+  if (!res || !res.ok) return;             // file gone / error — keep preview
+  if (seq !== currentSeq()) return;        // superseded by a newer render
+
+  const bytes = res.bytes;
+  const viewer = getViewer(path);
+  if (!viewer) return;
+
+  if (isPptx(path)) {
+    // In-place exception: clear and render directly into the live element.
+    if (seq !== currentSeq()) return;
+    contentEl.innerHTML = '';
+    try {
+      await viewer(bytes, contentEl);
+    } catch {
+      // Leave whatever partial state; next change event retries. No swap path.
+      return;
+    }
+    if (seq !== currentSeq()) return;
+    setScrollTop(restoreScrollTop(scrollRatio(prevTop, prevHeight), contentEl.scrollHeight));
+    return;
+  }
+
+  // Off-screen path for PDF/DOCX/XLSX.
+  const offscreen = makeOffscreen();
+  try {
+    await viewer(bytes, offscreen);
+  } catch {
+    return; // half-written / bad parse — keep the previous good preview
+  }
+  if (seq !== currentSeq()) return;        // superseded; drop the off-screen work
+  swap(offscreen);                          // move nodes into contentEl, remove offscreen
+  setScrollTop(restoreScrollTop(scrollRatio(prevTop, prevHeight), contentEl.scrollHeight));
 }
