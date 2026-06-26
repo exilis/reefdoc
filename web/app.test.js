@@ -53,3 +53,10 @@ test('downloadUrl: encodes spaces and slashes in nested paths', () => {
     '/api/file?path=my%20docs%2Freport.pdf&download=1'
   );
 });
+
+test('downloadUrl: encodes query-delimiter characters in the path', () => {
+  assert.equal(
+    downloadUrl('a&b=c.md'),
+    '/api/file?path=a%26b%3Dc.md&download=1'
+  );
+});
