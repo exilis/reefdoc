@@ -37,8 +37,8 @@ export function routeBinaryChange({ store, getTab, path }) {
 // with fake timers and stubs:
 //   deps.setTimeout(cb, ms) / deps.clearTimeout(id)  — timer functions
 //   deps.refresh(path)                               — performs the actual
-//        re-render (overridden in tests; the real one is defined in Task 4 and
-//        bound below when deps.refresh is omitted).
+//        re-render (overridden in tests; otherwise the built-in `defaultRefresh`
+//        (defined below) is used).
 // Returns { schedule(path), refresh(path), _pendingSize() }.
 export function createBinaryRefresher(deps) {
   const setTimeoutFn = deps.setTimeout;
@@ -50,7 +50,7 @@ export function createBinaryRefresher(deps) {
   const pending = new Map();
 
   // refresh: prefer an injected implementation (tests); otherwise use the
-  // built-in defined in Task 4.
+  // built-in `defaultRefresh` below.
   const refresh = deps.refresh ? deps.refresh : (path) => defaultRefresh(deps, path);
 
   function schedule(path) {
@@ -106,6 +106,7 @@ async function defaultRefresh(deps, path) {
 
   if (isPptx(path)) {
     // In-place exception: clear and render directly into the live element.
+    // Defensive clear; the PPTX viewer also clears its own container.
     contentEl.innerHTML = '';
     try {
       await viewer(bytes, contentEl);
