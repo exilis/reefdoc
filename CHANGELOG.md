@@ -5,6 +5,14 @@ All notable changes to reefdoc are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-06-26
+
+### Added
+- Download the currently-open document with one click via a button in the tab
+  bar. Works for every document type reefdoc opens (markdown, Allium, code,
+  PDF, DOCX, XLSX, PPTX); the server streams the original file unchanged via a
+  download mode on the file API.
+
 ## [0.9.0] - 2026-06-25
 
 ### Added

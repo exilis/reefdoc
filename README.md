@@ -40,6 +40,7 @@ go build -o reefdoc . && ./reefdoc ./docs
 - GitHub-flavored markdown, code syntax highlighting, and mermaid diagrams
 - [Allium](https://allium.dev) spec files (`.allium`) rendered as formatted cards
 - Preview PDF, DOCX, XLSX, and PPTX files in the browser (rendered client-side)
+- Download the open document (its original file) with one click
 - Auto table of contents from document headings
 - Dark / light theme (mermaid follows the theme)
 - Live reload: edit a file in any editor and the open tab updates
