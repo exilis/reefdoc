@@ -6,6 +6,7 @@ import {
   restoreScrollTop,
   routeBinaryChange,
 } from './binreload.js';
+import { createBinaryRefresher } from './binreload.js';
 
 test('BINARY_REFRESH_DEBOUNCE_MS is a sane positive debounce', () => {
   assert.equal(typeof BINARY_REFRESH_DEBOUNCE_MS, 'number');
@@ -56,4 +57,60 @@ test('routeBinaryChange: not-open binary file -> ignore', () => {
   const store = fakeStore('other.md', ['other.md']);
   const decision = routeBinaryChange({ store, getTab: fakeGetTab, path: 'a.pdf' });
   assert.equal(decision, 'ignore');
+});
+
+// A controllable fake timer: setTimeout records the callback; flush() runs all
+// due callbacks. clearTimeout removes a pending one.
+function fakeTimers() {
+  let nextId = 1;
+  const pending = new Map(); // id -> cb
+  return {
+    setTimeout: (cb) => { const id = nextId++; pending.set(id, cb); return id; },
+    clearTimeout: (id) => { pending.delete(id); },
+    flush: () => { for (const cb of [...pending.values()]) cb(); pending.clear(); },
+    size: () => pending.size,
+  };
+}
+
+test('schedule: a burst for the same path collapses to one refresh', () => {
+  const timers = fakeTimers();
+  const refreshed = [];
+  const r = createBinaryRefresher({
+    setTimeout: timers.setTimeout,
+    clearTimeout: timers.clearTimeout,
+    refresh: (path) => refreshed.push(path),
+  });
+  r.schedule('a.pdf');
+  r.schedule('a.pdf');
+  r.schedule('a.pdf');
+  assert.equal(timers.size(), 1, 'only one pending timer for the path');
+  timers.flush();
+  assert.deepEqual(refreshed, ['a.pdf'], 'refresh fired exactly once');
+});
+
+test('schedule: different paths get independent timers', () => {
+  const timers = fakeTimers();
+  const refreshed = [];
+  const r = createBinaryRefresher({
+    setTimeout: timers.setTimeout,
+    clearTimeout: timers.clearTimeout,
+    refresh: (path) => refreshed.push(path),
+  });
+  r.schedule('a.pdf');
+  r.schedule('b.xlsx');
+  assert.equal(timers.size(), 2);
+  timers.flush();
+  assert.deepEqual(refreshed.sort(), ['a.pdf', 'b.xlsx']);
+});
+
+test('schedule: pending entry is cleared after the timer fires', () => {
+  const timers = fakeTimers();
+  const r = createBinaryRefresher({
+    setTimeout: timers.setTimeout,
+    clearTimeout: timers.clearTimeout,
+    refresh: () => {},
+  });
+  r.schedule('a.pdf');
+  timers.flush();
+  assert.equal(r._pendingSize(), 0);
 });
