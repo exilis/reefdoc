@@ -57,7 +57,9 @@ export function createBinaryRefresher(deps) {
     if (pending.has(path)) clearTimeoutFn(pending.get(path));
     const id = setTimeoutFn(() => {
       pending.delete(path);
-      refresh(path);
+      // Fire-and-forget: the scheduler owns swallowing any rejection so a
+      // throwing refresh can never surface as an unhandled promise rejection.
+      Promise.resolve().then(() => refresh(path)).catch(() => {});
     }, debounceMs);
     pending.set(path, id);
   }
@@ -104,7 +106,6 @@ async function defaultRefresh(deps, path) {
 
   if (isPptx(path)) {
     // In-place exception: clear and render directly into the live element.
-    if (seq !== currentSeq()) return;
     contentEl.innerHTML = '';
     try {
       await viewer(bytes, contentEl);

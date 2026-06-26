@@ -72,7 +72,7 @@ function fakeTimers() {
   };
 }
 
-test('schedule: a burst for the same path collapses to one refresh', () => {
+test('schedule: a burst for the same path collapses to one refresh', async () => {
   const timers = fakeTimers();
   const refreshed = [];
   const r = createBinaryRefresher({
@@ -85,10 +85,13 @@ test('schedule: a burst for the same path collapses to one refresh', () => {
   r.schedule('a.pdf');
   assert.equal(timers.size(), 1, 'only one pending timer for the path');
   timers.flush();
+  // refresh now runs in a microtask deferred by the scheduler wrap.
+  await Promise.resolve();
+  await Promise.resolve();
   assert.deepEqual(refreshed, ['a.pdf'], 'refresh fired exactly once');
 });
 
-test('schedule: different paths get independent timers', () => {
+test('schedule: different paths get independent timers', async () => {
   const timers = fakeTimers();
   const refreshed = [];
   const r = createBinaryRefresher({
@@ -100,10 +103,13 @@ test('schedule: different paths get independent timers', () => {
   r.schedule('b.xlsx');
   assert.equal(timers.size(), 2);
   timers.flush();
+  // refresh now runs in a microtask deferred by the scheduler wrap.
+  await Promise.resolve();
+  await Promise.resolve();
   assert.deepEqual(refreshed.sort(), ['a.pdf', 'b.xlsx']);
 });
 
-test('schedule: pending entry is cleared after the timer fires', () => {
+test('schedule: pending entry is cleared after the timer fires', async () => {
   const timers = fakeTimers();
   const r = createBinaryRefresher({
     setTimeout: timers.setTimeout,
@@ -112,6 +118,10 @@ test('schedule: pending entry is cleared after the timer fires', () => {
   });
   r.schedule('a.pdf');
   timers.flush();
+  // pending.delete happens synchronously in the timer cb (before the microtask),
+  // but await anyway to stay consistent with the deferred refresh model.
+  await Promise.resolve();
+  await Promise.resolve();
   assert.equal(r._pendingSize(), 0);
 });
 
@@ -210,4 +220,20 @@ test('refresh: PPTX renders in place (no off-screen, no swap)', async () => {
   assert.equal(rendered.length, 1);
   assert.equal(rendered[0], h.contentEl);
   assert.equal(h.calls.swap, 0, 'PPTX does not use the swap path');
+});
+
+test('schedule: a throwing refresh never escapes the scheduler', async () => {
+  const timers = fakeTimers();
+  const r = createBinaryRefresher({
+    setTimeout: timers.setTimeout,
+    clearTimeout: timers.clearTimeout,
+    refresh: () => { throw new Error('boom'); },
+  });
+  r.schedule('a.pdf');
+  // Must not throw synchronously out of flush, and must not reject.
+  assert.doesNotThrow(() => timers.flush());
+  await Promise.resolve();
+  await Promise.resolve();
+  // Reaching here without an unhandled rejection is the assertion.
+  assert.ok(true);
 });
