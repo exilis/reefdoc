@@ -553,6 +553,12 @@ function restoreScroll(tab) {
   contentEl.scrollTop = (tab.scrollRatio || 0) * contentEl.scrollHeight;
 }
 
+// Build the URL that downloads a document's original bytes. The server responds
+// with Content-Disposition: attachment, so the browser saves rather than renders.
+function downloadUrl(path) {
+  return '/api/file?path=' + encodeURIComponent(path) + '&download=1';
+}
+
 function resolvePath(base, href) {
   const dir = base.slice(0, base.lastIndexOf('/') + 1);
   return decodeURIComponent(new URL(href, 'file:///' + dir).pathname.slice(1));
