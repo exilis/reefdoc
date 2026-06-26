@@ -4,6 +4,7 @@ import {
   BINARY_REFRESH_DEBOUNCE_MS,
   scrollRatio,
   restoreScrollTop,
+  routeBinaryChange,
 } from './binreload.js';
 
 test('BINARY_REFRESH_DEBOUNCE_MS is a sane positive debounce', () => {
@@ -29,4 +30,30 @@ test('restoreScrollTop: ratio times new height', () => {
 
 test('restoreScrollTop: zero ratio is top', () => {
   assert.equal(restoreScrollTop(0, 800), 0);
+});
+
+function fakeStore(activePath, openPaths) {
+  return {
+    active: activePath,
+    _open: new Set(openPaths),
+  };
+}
+const fakeGetTab = (store, path) => (store._open.has(path) ? { path } : undefined);
+
+test('routeBinaryChange: active open binary tab -> schedule', () => {
+  const store = fakeStore('a.pdf', ['a.pdf']);
+  const decision = routeBinaryChange({ store, getTab: fakeGetTab, path: 'a.pdf' });
+  assert.equal(decision, 'schedule');
+});
+
+test('routeBinaryChange: open background binary tab -> mark-updated', () => {
+  const store = fakeStore('other.md', ['a.pdf', 'other.md']);
+  const decision = routeBinaryChange({ store, getTab: fakeGetTab, path: 'a.pdf' });
+  assert.equal(decision, 'mark-updated');
+});
+
+test('routeBinaryChange: not-open binary file -> ignore', () => {
+  const store = fakeStore('other.md', ['other.md']);
+  const decision = routeBinaryChange({ store, getTab: fakeGetTab, path: 'a.pdf' });
+  assert.equal(decision, 'ignore');
 });
