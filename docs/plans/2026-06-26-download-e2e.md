@@ -58,7 +58,7 @@ Change it to (adds the `e2e` script and the `@playwright/test` devDependency; ke
     "e2e": "playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "1.48.2",
+    "@playwright/test": "1.55.0",
     "highlight.js": "11.9.0",
     "markdown-it": "14.1.0",
     "markdown-it-task-lists": "2.1.1"
@@ -423,5 +423,5 @@ git commit -m "docs: document the npm run e2e browser test"
 ## Self-Review Notes
 
 - **Spec coverage:** Harness (build/spawn/free-port/ready-poll/cleanup) → Task 2. The 5 test cases (hidden / appears / text download+contents / binary download+contents / hides after close) → Task 3. Playwright dep + Chromium-only config → Task 1. Isolated `e2e` CI job → Task 4. `web` job stays clean via `*.e2e.js` naming → verified in Task 4 Step 3. Reliability mitigations (free port, ready-poll, localStorage clear, waitForEvent-before-click, afterAll kill) → all present in Tasks 2-3. The spec's "break the feature to prove the test has teeth" sanity step → Task 3 Step 3.
-- **Placeholder scan:** No TBDs. Playwright version pinned (`1.48.2`); if `npm install` resolves a different current patch, that's acceptable — the API used (`waitForEvent('download')`, `download.saveAs`, `download.suggestedFilename`) is stable across 1.4x.
+- **Placeholder scan:** No TBDs. Playwright pinned at `1.55.0` (Node 24 compatible; `1.48.2` deadlocks its TS-ESM loader on Node 24). The download API used (`waitForEvent('download')`, `download.saveAs`, `download.suggestedFilename`) is stable across 1.4x–1.5x.
 - **Naming/selector consistency:** Selectors (`#download-btn`, `#tree .tree-item[data-path]`, `.tab .close`) verified against `web/app.js` and `web/index.html`. Helper names (`freshPage`, `openDoc`, `freePort`, `waitForServer`) are consistent across Tasks 2-3. `tmp`/`base`/`proc` module-level vars are shared between `beforeAll` and the tests.
