@@ -43,7 +43,8 @@ go build -o reefdoc . && ./reefdoc ./docs
 - Download the open document (its original file) with one click
 - Auto table of contents from document headings
 - Dark / light theme (mermaid follows the theme)
-- Live reload: edit a file in any editor and the open tab updates
+- Live reload: edit a file in any editor and the open tab updates — including
+  PDF, DOCX, XLSX, and PPTX previews
 - Hyperlinks between documents — markdown links and Allium `use` paths open in a new tab
 
 ## Status
@@ -54,8 +55,9 @@ themes, live reload). See [`docs/specs`](docs/specs) for the design and
 [`docs/plans`](docs/plans) for the implementation plan.
 
 Run the unit tests with `go test ./...` and `npm test`. The browser end-to-end
-test (Playwright, drives the real binary) runs with `npm run e2e` — it needs Go
-on your PATH and Playwright's Chromium installed (`npx playwright install chromium`).
+tests (Playwright, in `web/e2e/`, drive the real binary) run with `npm run e2e`
+— they need Go on your PATH and Playwright's Chromium installed
+(`npx playwright install chromium`).
 
 ## Architecture
 

@@ -11,7 +11,8 @@ import (
 
 // Watcher watches the root directory plus an on-demand set of subdirectories
 // (reconciled via SetWatches) and broadcasts debounced events through the
-// broker. "change" carries the relative path of a modified markdown file;
+// broker. "change" carries the relative path of a modified previewable file
+// (markdown or a binary document reefdoc previews);
 // "tree" carries the relative path of a directory whose listing changed
 // (the root directory is the empty string).
 type Watcher struct {
@@ -121,7 +122,7 @@ func (w *Watcher) Run() {
 					pendingTree[dir] = true
 				}
 			}
-			if ev.Op&(fsnotify.Write|fsnotify.Create) != 0 && isMarkdown(ev.Name) {
+			if ev.Op&(fsnotify.Write|fsnotify.Create) != 0 && isViewable(ev.Name) {
 				if rel, ok := w.rel(ev.Name); ok {
 					pendingChange[rel] = true
 				}

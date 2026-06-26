@@ -5,6 +5,27 @@ All notable changes to reefdoc are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-06-26
+
+### Added
+- Binary document previews (PDF, DOCX, XLSX, PPTX) now **auto-update** when the
+  file changes on disk, matching markdown live-reload. The active preview
+  re-renders automatically; background tabs are flagged and re-render when you
+  switch to them. PDF/DOCX/XLSX render off-screen and swap in (no flicker, and a
+  half-written file leaves the previous preview intact); PPTX re-renders in
+  place. Scroll position is best-effort preserved across a refresh.
+- End-to-end browser tests (Playwright) covering the live-reload pipeline:
+  active-tab auto-update, the background "updated" marker, and the
+  deleted-file state. Run with `npm run e2e`.
+
+### Fixed
+- The file watcher now emits change events for binary document formats, not
+  just markdown, so binary previews actually receive live updates.
+- Deleting an open document on disk now shows the "this file no longer exists"
+  state in its tab, instead of leaving a stale preview. This previously did not
+  happen for any file type (deletion emits only a directory-tree event); the
+  open tab is now re-checked when its directory listing changes.
+
 ## [0.10.0] - 2026-06-26
 
 ### Added
