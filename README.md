@@ -10,9 +10,9 @@ files change on disk.
 
 You edit markdown in your own editor; `reefdoc` is the preview.
 
-> **Latest release: [v0.9.0](https://github.com/exilis/reefdoc/releases/tag/v0.9.0).**
-> Recent highlights: **PDF, DOCX, XLSX, and PPTX files now preview in the
-> browser**, rendered fully client-side.
+> **Latest release: [v0.11.0](https://github.com/exilis/reefdoc/releases/tag/v0.11.0).**
+> Recent highlights: **binary document previews (PDF, DOCX, XLSX, PPTX) now
+> auto-update when the file changes on disk**, plus one-click document download.
 > Full history in the [changelog](CHANGELOG.md).
 
 ```bash
