@@ -7,6 +7,7 @@ import { isRecent } from './recency.js';
 import { renderAllium } from './allium.js';
 import { getViewer, isBinaryDoc } from './viewers.js';
 import { createBinaryRefresher, routeBinaryChange } from './binreload.js';
+import { snapshotBlocks, computeDiff, applyMarks } from './changemark.js';
 
 const render = createRenderer();
 const store = createTabStore();
@@ -472,7 +473,7 @@ function doClose(path) {
 const MAX_BYTES = 5 * 1024 * 1024;
 let showSeq = 0;
 
-async function show(path) {
+async function show(path, { oldSnapshot } = {}) {
   const tab = getTab(store, path);
   if (!tab) return;
   const seq = ++showSeq;
@@ -522,6 +523,16 @@ async function show(path) {
   renderToc();
   await runMermaid();
   if (seq !== showSeq) return;
+
+  if (oldSnapshot) {
+    const newSnapshot = snapshotBlocks(contentEl);
+    const ops = computeDiff(oldSnapshot, newSnapshot);
+    applyMarks(contentEl, ops);
+    tab.blockSnapshot = newSnapshot;
+  } else {
+    tab.blockSnapshot = snapshotBlocks(contentEl);
+  }
+
   restoreScroll(tab);
 }
 
@@ -713,8 +724,10 @@ function connectSSE() {
       }
       const tab = getTab(store, msg.path);
       if (!tab) return;
-      if (msg.path === store.active) show(msg.path);
-      else { tab.updated = true; renderTabs(); }
+      if (msg.path === store.active) {
+        const oldSnapshot = tab.blockSnapshot || null;
+        show(msg.path, { oldSnapshot });
+      } else { tab.updated = true; renderTabs(); }
     }
   };
   es.onopen = () => {
