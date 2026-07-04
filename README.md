@@ -10,9 +10,9 @@ files change on disk.
 
 You edit markdown in your own editor; `reefdoc` is the preview.
 
-> **Latest release: [v0.11.0](https://github.com/exilis/reefdoc/releases/tag/v0.11.0).**
-> Recent highlights: **binary document previews (PDF, DOCX, XLSX, PPTX) now
-> auto-update when the file changes on disk**, plus one-click document download.
+> **Latest release: [v0.12.0](https://github.com/exilis/reefdoc/releases/tag/v0.12.0).**
+> Recent highlights: **changed blocks are highlighted when a markdown document
+> live-reloads**, so you see at a glance what's different.
 > Full history in the [changelog](CHANGELOG.md).
 
 ```bash
@@ -45,6 +45,8 @@ go build -o reefdoc . && ./reefdoc ./docs
 - Dark / light theme (mermaid follows the theme)
 - Live reload: edit a file in any editor and the open tab updates — including
   PDF, DOCX, XLSX, and PPTX previews
+- Changed blocks are highlighted after a markdown reload (flash + border, with
+  gap markers where blocks were removed)
 - Hyperlinks between documents — markdown links and Allium `use` paths open in a new tab
 
 ## Status
