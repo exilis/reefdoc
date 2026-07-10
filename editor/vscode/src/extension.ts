@@ -1,12 +1,69 @@
 import * as vscode from 'vscode';
+import {
+  resolveBinaryPath,
+  findFreePort,
+  startServer,
+  ReefdocServer,
+} from './server';
+import { createReefdocPanel } from './panel';
+
+interface Live {
+  panel: vscode.WebviewPanel;
+  server: ReefdocServer;
+}
+
+let current: Live | undefined;
+
+async function openPreview(context: vscode.ExtensionContext): Promise<void> {
+  if (current) {
+    current.panel.reveal(vscode.ViewColumn.Beside);
+    return;
+  }
+
+  const folder = vscode.workspace.workspaceFolders?.[0];
+  if (!folder) {
+    vscode.window.showErrorMessage('reefdoc: Open a folder to preview.');
+    return;
+  }
+  const root = folder.uri.fsPath;
+
+  const cfg = vscode.workspace.getConfiguration('reefdoc');
+  const host = cfg.get<string>('host', '127.0.0.1');
+  const overridePath = cfg.get<string>('binaryPath', '');
+
+  let binaryPath: string;
+  try {
+    binaryPath = overridePath || resolveBinaryPath(context.extensionPath);
+  } catch (err) {
+    vscode.window.showErrorMessage(`reefdoc: ${(err as Error).message}`);
+    return;
+  }
+
+  let server: ReefdocServer;
+  try {
+    const port = await findFreePort();
+    server = await startServer({ binaryPath, root, host, port });
+  } catch (err) {
+    vscode.window.showErrorMessage(`reefdoc: failed to start — ${(err as Error).message}`);
+    return;
+  }
+
+  const panel = createReefdocPanel(server.url);
+  current = { panel, server };
+  panel.onDidDispose(() => {
+    server.stop();
+    current = undefined;
+  });
+}
 
 export function activate(context: vscode.ExtensionContext): void {
-  const disposable = vscode.commands.registerCommand('reefdoc.openPreview', () => {
-    vscode.window.showInformationMessage('reefdoc: Open Preview (stub)');
-  });
+  const disposable = vscode.commands.registerCommand('reefdoc.openPreview', () =>
+    openPreview(context),
+  );
   context.subscriptions.push(disposable);
 }
 
 export function deactivate(): void {
-  // no-op until later tasks
+  current?.server.stop();
+  current = undefined;
 }
