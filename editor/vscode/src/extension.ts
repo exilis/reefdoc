@@ -13,47 +13,56 @@ interface Live {
 }
 
 let current: Live | undefined;
+let starting = false;
 
 async function openPreview(context: vscode.ExtensionContext): Promise<void> {
   if (current) {
     current.panel.reveal(vscode.ViewColumn.Beside);
     return;
   }
-
-  const folder = vscode.workspace.workspaceFolders?.[0];
-  if (!folder) {
-    vscode.window.showErrorMessage('reefdoc: Open a folder to preview.');
+  if (starting) {
     return;
   }
-  const root = folder.uri.fsPath;
-
-  const cfg = vscode.workspace.getConfiguration('reefdoc');
-  const host = cfg.get<string>('host', '127.0.0.1');
-  const overridePath = cfg.get<string>('binaryPath', '');
-
-  let binaryPath: string;
+  starting = true;
   try {
-    binaryPath = overridePath || resolveBinaryPath(context.extensionPath);
-  } catch (err) {
-    vscode.window.showErrorMessage(`reefdoc: ${(err as Error).message}`);
-    return;
-  }
+    const folder = vscode.workspace.workspaceFolders?.[0];
+    if (!folder) {
+      vscode.window.showErrorMessage('reefdoc: Open a folder to preview.');
+      return;
+    }
+    const root = folder.uri.fsPath;
 
-  let server: ReefdocServer;
-  try {
-    const port = await findFreePort();
-    server = await startServer({ binaryPath, root, host, port });
-  } catch (err) {
-    vscode.window.showErrorMessage(`reefdoc: failed to start — ${(err as Error).message}`);
-    return;
-  }
+    const cfg = vscode.workspace.getConfiguration('reefdoc');
+    const host = cfg.get<string>('host', '127.0.0.1');
+    const overridePath = cfg.get<string>('binaryPath', '');
 
-  const panel = createReefdocPanel(server.url);
-  current = { panel, server };
-  panel.onDidDispose(() => {
-    server.stop();
-    current = undefined;
-  });
+    let binaryPath: string;
+    try {
+      binaryPath = overridePath || resolveBinaryPath(context.extensionPath);
+    } catch (err) {
+      vscode.window.showErrorMessage(`reefdoc: ${(err as Error).message}`);
+      return;
+    }
+
+    let server: ReefdocServer;
+    try {
+      const port = await findFreePort();
+      server = await startServer({ binaryPath, root, host, port });
+    } catch (err) {
+      vscode.window.showErrorMessage(`reefdoc: failed to start — ${(err as Error).message}`);
+      return;
+    }
+
+    const panel = createReefdocPanel(server.url);
+    current = { panel, server };
+    context.subscriptions.push(panel);
+    panel.onDidDispose(() => {
+      server.stop();
+      current = undefined;
+    });
+  } finally {
+    starting = false;
+  }
 }
 
 export function activate(context: vscode.ExtensionContext): void {
