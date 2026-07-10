@@ -31,6 +31,8 @@
   },
   "scripts": {
     "build": "tsc -p ./",
+    "bundle": "node scripts/bundle-binaries.mjs",
+    "package": "npm run bundle && npm run build && vsce package --no-dependencies",
     "watch": "tsc -watch -p ./",
     "test": "tsx --test src/**/*.test.ts"
   },
