@@ -46,14 +46,21 @@ async function openPreview(context: vscode.ExtensionContext): Promise<void> {
 
     let server: ReefdocServer;
     try {
-      const port = await findFreePort();
+      const port = await findFreePort(host);
       server = await startServer({ binaryPath, root, host, port });
     } catch (err) {
       vscode.window.showErrorMessage(`reefdoc: failed to start — ${(err as Error).message}`);
       return;
     }
 
-    const panel = createReefdocPanel(server.url);
+    let panel: vscode.WebviewPanel;
+    try {
+      panel = createReefdocPanel(server.url);
+    } catch (err) {
+      server.stop();
+      vscode.window.showErrorMessage(`reefdoc: failed to open panel — ${(err as Error).message}`);
+      return;
+    }
     current = { panel, server };
     context.subscriptions.push(panel);
     panel.onDidDispose(() => {

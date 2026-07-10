@@ -24,11 +24,11 @@ export function resolveBinaryPath(
   return path.join(extensionPath, 'bin', key, exe);
 }
 
-export function findFreePort(): Promise<number> {
+export function findFreePort(host: string = '127.0.0.1'): Promise<number> {
   return new Promise((resolve, reject) => {
     const srv = net.createServer();
     srv.on('error', reject);
-    srv.listen(0, '127.0.0.1', () => {
+    srv.listen(0, host, () => {
       const addr = srv.address();
       if (addr && typeof addr === 'object') {
         const port = addr.port;

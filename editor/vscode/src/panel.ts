@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
 
 function webviewHtml(url: string): string {
+  const origin = new URL(url).origin;
   const csp = [
     "default-src 'none'",
-    'frame-src http://127.0.0.1:* http://localhost:*',
+    `frame-src ${origin}`,
     "style-src 'unsafe-inline'",
   ].join('; ');
   return `<!DOCTYPE html>
