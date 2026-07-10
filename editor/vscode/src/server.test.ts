@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveBinaryPath, findFreePort } from './server.ts';
+import { resolveBinaryPath, findFreePort, startServer } from './server.ts';
 
 test('resolveBinaryPath builds a per-platform path', () => {
   assert.equal(
@@ -31,4 +31,11 @@ test('findFreePort returns a usable port number', async () => {
   const port = await findFreePort();
   assert.ok(Number.isInteger(port));
   assert.ok(port > 0 && port < 65536);
+});
+
+test('startServer rejects (does not crash) on a bad binary path', async () => {
+  const port = await findFreePort();
+  await assert.rejects(
+    startServer({ binaryPath: '/no/such/reefdoc-binary', root: '.', host: '127.0.0.1', port, timeoutMs: 3000 }),
+  );
 });

@@ -92,6 +92,15 @@ export async function startServer(opts: {
     exited = true;
   });
 
+  // If spawn itself fails (bad binaryPath, ENOENT, permissions), Node emits
+  // an 'error' event and never an 'exit'. Without a listener this becomes an
+  // uncaught exception that crashes the host process.
+  let spawnError: Error | undefined;
+  child.on('error', (err) => {
+    exited = true;
+    spawnError = err;
+  });
+
   const stop = () => {
     if (!child.killed) {
       child.kill();
@@ -102,7 +111,9 @@ export async function startServer(opts: {
   while (Date.now() < deadline) {
     if (exited) {
       stop();
-      throw new Error(`reefdoc exited before serving: ${stderrTail.trim()}`);
+      throw new Error(
+        `reefdoc failed to start: ${(spawnError?.message ?? stderrTail).trim()}`,
+      );
     }
     if (await probe(url)) {
       return { port, host, url, stop };
