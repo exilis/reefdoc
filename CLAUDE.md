@@ -1,3 +1,42 @@
+<!-- agent-policy:start (managed block — do not edit inside markers) -->
+# Agent Policy (strict)
+
+These rules bind every AI agent working in this repository. They override
+default agent behavior. Project instructions below may add to them but
+never loosen them.
+
+## Git
+- Do NOT commit, push, tag, rebase, force-push, or `reset --hard` unless
+  the user explicitly requests it in the current session.
+- Never push directly to `main`/`master`. Never rewrite published history.
+- At handoff, report changed files and propose exact git commands instead
+  of running them.
+
+## Secrets & data
+- Never read, print, copy, or commit secrets: `.env*`, `.secrets/`,
+  `*.pem`, tokens, API keys, customer data.
+- Never send repository contents to external services without explicit
+  approval.
+
+## Safety
+- No destructive filesystem operations (`rm -rf`, bulk deletes) outside
+  paths you created this session.
+- No dependency upgrades, lockfile regeneration, schema or public-API
+  changes unless explicitly requested.
+
+## Scope & quality
+- Make the smallest change that satisfies the request; do not refactor
+  unrelated code.
+- Run the repo's tests/linters before claiming work is done; report
+  failures honestly — never claim success without verification.
+
+## Tracking & handoff
+- If this repo has `.beads/`, track work with `bd` (run `bd prime`);
+  otherwise do not create markdown TODO files.
+- End every session with: what changed, what was verified, and suggested
+  next commands (including any commit you propose).
+<!-- agent-policy:end -->
+
 # reefdoc — project instructions
 
 ## Release process (follow every time a version ships)
