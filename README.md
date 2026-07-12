@@ -10,9 +10,9 @@ files change on disk.
 
 You edit markdown in your own editor; `reefdoc` is the preview.
 
-> **Latest release: [v0.12.0](https://github.com/exilis/reefdoc/releases/tag/v0.12.0).**
-> Recent highlights: **changed blocks are highlighted when a markdown document
-> live-reloads**, so you see at a glance what's different.
+> **Latest release: [v0.13.0](https://github.com/exilis/reefdoc/releases/tag/v0.13.0).**
+> Recent highlights: **`.herdr` directories now appear in the file tree**,
+> alongside `.allium` and `.claude`, so herdr worktrees are browsable.
 > Full history in the [changelog](CHANGELOG.md).
 
 ```bash
