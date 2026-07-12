@@ -41,7 +41,7 @@ func isViewable(name string) bool {
 // listing or searching: dependency/VCS/hidden directories that are never of
 // interest to a markdown viewer and would otherwise dominate a large tree.
 func isNoiseDir(name string) bool {
-	return name == "node_modules" || (strings.HasPrefix(name, ".") && name != ".allium" && name != ".claude")
+	return name == "node_modules" || (strings.HasPrefix(name, ".") && name != ".allium" && name != ".claude" && name != ".herdr")
 }
 
 // ListDir returns the immediate children (non-noise directories and viewable
