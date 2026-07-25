@@ -37,15 +37,36 @@ func isViewable(name string) bool {
 	return false
 }
 
+// dotDirAllowlist are hidden directories that do hold documents worth browsing,
+// so they survive the blanket dot-directory skip in isNoiseDir.
+var dotDirAllowlist = map[string]bool{
+	".allium":    true,
+	".claude":    true,
+	".worktrees": true,
+}
+
 // isNoiseDir reports whether a directory should be skipped entirely when
 // listing or searching: dependency/VCS/hidden directories that are never of
 // interest to a markdown viewer and would otherwise dominate a large tree.
 func isNoiseDir(name string) bool {
-	return name == "node_modules" || (strings.HasPrefix(name, ".") && name != ".allium" && name != ".claude")
+	return name == "node_modules" || (strings.HasPrefix(name, ".") && !dotDirAllowlist[name])
+}
+
+// isUnfiltered reports whether relDir sits inside a ".worktrees" directory,
+// where directory noise filtering is switched off entirely: a worktree is a
+// whole checkout, and hiding its ".git"/"node_modules" would misrepresent it.
+func isUnfiltered(relDir string) bool {
+	for _, seg := range strings.Split(filepath.ToSlash(relDir), "/") {
+		if seg == ".worktrees" {
+			return true
+		}
+	}
+	return false
 }
 
 // ListDir returns the immediate children (non-noise directories and viewable
 // files) of the directory at relDir (relative to root; "" means the root).
+// Under ".worktrees" every directory is listed — see isUnfiltered.
 // It does NOT recurse — directory nodes carry no children, so callers list
 // deeper levels on demand. Directories come first, then files, each group
 // sorted case-insensitively by name.
@@ -59,11 +80,12 @@ func ListDir(root, relDir string) ([]*Node, error) {
 		return nil, err
 	}
 	var nodes []*Node
+	unfiltered := isUnfiltered(relDir)
 	for _, e := range entries {
 		name := e.Name()
 		childRel := filepath.ToSlash(filepath.Join(relDir, name))
 		if e.IsDir() {
-			if isNoiseDir(name) {
+			if !unfiltered && isNoiseDir(name) {
 				continue
 			}
 			nodes = append(nodes, &Node{Name: name, Path: childRel, IsDir: true})
