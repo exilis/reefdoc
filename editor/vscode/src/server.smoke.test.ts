@@ -5,7 +5,10 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import * as http from 'node:http';
-import { findFreePort, startServer, ReefdocServer } from './server.ts';
+import { findFreePort, startServer } from './server.ts';
+// ReefdocServer is an interface: `import type` keeps it out of the runtime
+// import list, which bare `node --test` type-stripping would otherwise reject.
+import type { ReefdocServer } from './server.ts';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 let binaryPath: string;
