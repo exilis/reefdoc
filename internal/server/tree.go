@@ -42,6 +42,7 @@ func isViewable(name string) bool {
 var dotDirAllowlist = map[string]bool{
 	".allium":    true,
 	".claude":    true,
+	".herdr":     true,
 	".worktrees": true,
 }
 
