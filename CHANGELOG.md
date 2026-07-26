@@ -5,6 +5,21 @@ All notable changes to reefdoc are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **VS Code / Cursor extension**: preview your docs without leaving the editor.
+  Run **reefdoc: Open Preview** from the command palette and a panel opens
+  beside your editor with reefdoc's file tree, tabs, and live reload; closing
+  the panel stops the server. The reefdoc binary is bundled per-platform, so
+  there's nothing separate to install. Configure `reefdoc.binaryPath` to use
+  your own binary and `reefdoc.host` to change the listen host (default
+  `127.0.0.1`). Source and packaging live in `editor/vscode/`.
+- `.worktrees` directories now appear in the file tree, so docs in sibling git
+  worktrees are browsable. Inside a `.worktrees` path no directory filtering
+  applies at all — a worktree is a whole checkout, so its `.git` and
+  `node_modules` are listed rather than hidden, unlike everywhere else.
+
 ## [0.13.0] - 2026-07-12
 
 ### Added
@@ -140,6 +155,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   via an on-demand filesystem watcher scoped to the visible tree.
 - Path-traversal-safe file serving and a `--version` flag.
 
+[Unreleased]: https://github.com/exilis/reefdoc/compare/v0.13.0...HEAD
 [0.13.0]: https://github.com/exilis/reefdoc/releases/tag/v0.13.0
 [0.12.0]: https://github.com/exilis/reefdoc/releases/tag/v0.12.0
 [0.11.0]: https://github.com/exilis/reefdoc/releases/tag/v0.11.0
