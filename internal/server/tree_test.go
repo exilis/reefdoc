@@ -75,6 +75,7 @@ func TestListDir_AlliumFilesAndDir(t *testing.T) {
 	writeFile(t, filepath.Join(root, "spec.allium"))
 	writeFile(t, filepath.Join(root, ".allium", "schema.allium"))
 	writeFile(t, filepath.Join(root, ".claude", "settings.json"))
+	writeFile(t, filepath.Join(root, ".worktrees", "feat-x", "README.md"))
 	writeFile(t, filepath.Join(root, ".herdr", "worktrees", "repo", "README.md"))
 	writeFile(t, filepath.Join(root, ".git", "config"))
 
@@ -86,8 +87,9 @@ func TestListDir_AlliumFilesAndDir(t *testing.T) {
 	for _, n := range nodes {
 		names = append(names, n.Name)
 	}
-	// .allium, .claude and .herdr dirs listed, .git hidden; spec.allium listed as file
-	want := []string{".allium", ".claude", ".herdr", "spec.allium"}
+	// .allium, .claude, .herdr and .worktrees dirs listed, .git hidden;
+	// spec.allium listed as file
+	want := []string{".allium", ".claude", ".herdr", ".worktrees", "spec.allium"}
 	if !reflect.DeepEqual(names, want) {
 		t.Fatalf("got %v want %v", names, want)
 	}
@@ -99,6 +101,45 @@ func TestListDir_AlliumFilesAndDir(t *testing.T) {
 	}
 	if len(inner) != 1 || inner[0].Name != "schema.allium" {
 		t.Fatalf("unexpected inner: %+v", inner)
+	}
+}
+
+func TestListDir_NoDirFilteringInsideWorktrees(t *testing.T) {
+	root := t.TempDir()
+	wt := filepath.Join(root, ".worktrees", "feat-x")
+	writeFile(t, filepath.Join(wt, "README.md"))
+	writeFile(t, filepath.Join(wt, ".git", "HEAD"))
+	writeFile(t, filepath.Join(wt, "node_modules", "pkg", "readme.md"))
+	// same names at the root are still filtered
+	writeFile(t, filepath.Join(root, ".git", "config"))
+	writeFile(t, filepath.Join(root, "node_modules", "pkg", "readme.md"))
+
+	names := func(relDir string) []string {
+		nodes, err := ListDir(root, relDir)
+		if err != nil {
+			t.Fatalf("ListDir(%q): %v", relDir, err)
+		}
+		var out []string
+		for _, n := range nodes {
+			out = append(out, n.Name)
+		}
+		return out
+	}
+
+	if got, want := names(""), []string{".worktrees"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("root: got %v want %v", got, want)
+	}
+	if got, want := names(".worktrees"), []string{"feat-x"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf(".worktrees: got %v want %v", got, want)
+	}
+	// inside a worktree nothing is skipped, not even .git/node_modules
+	got, want := names(".worktrees/feat-x"), []string{".git", "node_modules", "README.md"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("worktree: got %v want %v", got, want)
+	}
+	// and filtering stays off deeper down
+	if got, want := names(".worktrees/feat-x/node_modules"), []string{"pkg"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("nested: got %v want %v", got, want)
 	}
 }
 

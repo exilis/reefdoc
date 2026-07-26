@@ -1,0 +1,46 @@
+{
+  "name": "reefdoc",
+  "displayName": "reefdoc",
+  "description": "Preview markdown, mermaid & allium in an editor panel via the reefdoc binary.",
+  "version": "0.1.0",
+  "publisher": "exilis",
+  "private": true,
+  "license": "MIT",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "reefdoc.openPreview", "title": "reefdoc: Open Preview" }
+    ],
+    "configuration": {
+      "title": "reefdoc",
+      "properties": {
+        "reefdoc.binaryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to a reefdoc binary to use instead of the bundled one."
+        },
+        "reefdoc.host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "Host the reefdoc server listens on."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p ./",
+    "bundle": "node scripts/bundle-binaries.mjs",
+    "package": "npm run bundle && npm run build && vsce package --no-dependencies",
+    "watch": "tsc -watch -p ./",
+    "test": "tsx --test src/**/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.4.0",
+    "@vscode/vsce": "^2.24.0"
+  }
+}
