@@ -10,9 +10,10 @@ files change on disk.
 
 You edit markdown in your own editor; `reefdoc` is the preview.
 
-> **Latest release: [v0.13.0](https://github.com/exilis/reefdoc/releases/tag/v0.13.0).**
-> Recent highlights: **`.herdr` directories now appear in the file tree**,
-> alongside `.allium` and `.claude`, so herdr worktrees are browsable.
+> **Latest release: [v0.14.0](https://github.com/exilis/reefdoc/releases/tag/v0.14.0).**
+> Recent highlights: **a VS Code / Cursor extension** that previews your docs in
+> an editor panel with the binary bundled in, plus `.worktrees` directories now
+> showing in the file tree.
 > Full history in the [changelog](CHANGELOG.md).
 
 ```bash
