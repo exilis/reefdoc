@@ -22,3 +22,9 @@
 # Playwright E2E artifacts
 /test-results
 /playwright-report
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
