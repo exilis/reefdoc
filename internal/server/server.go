@@ -68,6 +68,19 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		}
 		abs = resolved
 	}
+	if ct, ok := mediaContentType(abs); ok {
+		// Media (video/image/audio) can be hundreds of MB: stream from disk
+		// with http.ServeFile, which handles HTTP Range requests (required
+		// for <video> seeking) and never buffers the whole file in memory.
+		// ServeFile keeps a Content-Type that is already set.
+		w.Header().Set("Content-Type", ct)
+		if r.URL.Query().Get("download") == "1" {
+			name := dispositionFilename(filepath.Base(abs))
+			w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
+		}
+		http.ServeFile(w, r, abs)
+		return
+	}
 	data, err := os.ReadFile(abs)
 	if err != nil {
 		http.Error(w, "not found", http.StatusNotFound)
@@ -127,6 +140,36 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush()
 		}
 	}
+}
+
+// mediaContentType returns the Content-Type for media files (video, image,
+// audio) that reefdoc streams with Range support, and whether the path is one.
+// Types are fixed here rather than left to mime.TypeByExtension so responses
+// do not depend on the host's /etc/mime.types.
+func mediaContentType(path string) (string, bool) {
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".mp4":
+		return "video/mp4", true
+	case ".webm":
+		return "video/webm", true
+	case ".mov":
+		return "video/quicktime", true
+	case ".png":
+		return "image/png", true
+	case ".jpg", ".jpeg":
+		return "image/jpeg", true
+	case ".gif":
+		return "image/gif", true
+	case ".webp":
+		return "image/webp", true
+	case ".svg":
+		return "image/svg+xml", true
+	case ".wav":
+		return "audio/wav", true
+	case ".mp3":
+		return "audio/mpeg", true
+	}
+	return "", false
 }
 
 // contentType returns the response Content-Type for a served file. Text formats

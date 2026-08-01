@@ -5,6 +5,18 @@ All notable changes to reefdoc are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-08-01
+
+### Added
+- **Inline media viewing**: videos (`mp4`, `webm`, `mov`), images (`png`,
+  `jpg`/`jpeg`, `gif`, `webp`, `svg`), and audio (`wav`, `mp3`) in the served
+  tree now appear in the file-tree navigator and open in native browser
+  viewers — `<video controls>`, `<img>`, and `<audio controls>`.
+- Media is served with its correct `Content-Type` and full **HTTP Range**
+  support, streamed from disk rather than buffered — multi-hundred-MB videos
+  play and seek without loading the whole file into memory. The download
+  button works on media files too.
+
 ## [0.14.0] - 2026-07-26
 
 ### Added
@@ -155,6 +167,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   via an on-demand filesystem watcher scoped to the visible tree.
 - Path-traversal-safe file serving and a `--version` flag.
 
+[0.15.0]: https://github.com/exilis/reefdoc/releases/tag/v0.15.0
 [0.14.0]: https://github.com/exilis/reefdoc/releases/tag/v0.14.0
 [0.13.0]: https://github.com/exilis/reefdoc/releases/tag/v0.13.0
 [0.12.0]: https://github.com/exilis/reefdoc/releases/tag/v0.12.0

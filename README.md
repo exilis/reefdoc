@@ -10,10 +10,10 @@ files change on disk.
 
 You edit markdown in your own editor; `reefdoc` is the preview.
 
-> **Latest release: [v0.14.0](https://github.com/exilis/reefdoc/releases/tag/v0.14.0).**
-> Recent highlights: **a VS Code / Cursor extension** that previews your docs in
-> an editor panel with the binary bundled in, plus `.worktrees` directories now
-> showing in the file tree.
+> **Latest release: [v0.15.0](https://github.com/exilis/reefdoc/releases/tag/v0.15.0).**
+> Recent highlights: **inline media viewing** — videos, images, and audio in
+> the served tree open in native browser players, streamed with HTTP Range
+> support so even huge videos seek instantly.
 > Full history in the [changelog](CHANGELOG.md).
 
 ```bash
@@ -41,6 +41,8 @@ go build -o reefdoc . && ./reefdoc ./docs
 - GitHub-flavored markdown, code syntax highlighting, and mermaid diagrams
 - [Allium](https://allium.dev) spec files (`.allium`) rendered as formatted cards
 - Preview PDF, DOCX, XLSX, and PPTX files in the browser (rendered client-side)
+- Play videos (MP4/WebM/MOV), view images (PNG/JPEG/GIF/WebP/SVG), and
+  listen to audio (WAV/MP3) inline — streamed with HTTP Range support
 - Download the open document (its original file) with one click
 - Auto table of contents from document headings
 - Dark / light theme (mermaid follows the theme)

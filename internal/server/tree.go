@@ -22,12 +22,26 @@ func isMarkdown(name string) bool {
 	return ext == ".md" || ext == ".markdown" || ext == ".allium"
 }
 
+// isMedia reports whether a file is a media format reefdoc streams to the
+// browser's native <video>/<img>/<audio> elements. Media files are served
+// with HTTP Range support and are never buffered whole (see server.go).
+func isMedia(name string) bool {
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".mp4", ".webm", ".mov",
+		".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg",
+		".wav", ".mp3":
+		return true
+	}
+	return false
+}
+
 // isViewable reports whether a file should appear in the tree: the text
-// formats reefdoc renders inline plus the binary document formats it previews
-// client-side (pdf/docx/xlsx/pptx). It also gates live-reload "change" events
+// formats reefdoc renders inline, the binary document formats it previews
+// client-side (pdf/docx/xlsx/pptx), and the media formats it streams
+// (video/image/audio). It also gates live-reload "change" events
 // (see watcher.go), so narrowing it affects both tree listing and auto-update.
 func isViewable(name string) bool {
-	if isMarkdown(name) {
+	if isMarkdown(name) || isMedia(name) {
 		return true
 	}
 	switch strings.ToLower(filepath.Ext(name)) {
