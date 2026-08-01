@@ -5,7 +5,7 @@ import { buildToc, slugify } from './toc.js';
 import { createFavorites, isFavorite, toggleFavorite, listFavorites } from './favorites.js';
 import { isRecent } from './recency.js';
 import { renderAllium } from './allium.js';
-import { getViewer, isBinaryDoc } from './viewers.js';
+import { getViewer, isBinaryDoc, mediaKind, renderMedia } from './viewers.js';
 import { createBinaryRefresher, routeBinaryChange } from './binreload.js';
 import { snapshotBlocks, computeDiff, applyMarks } from './changemark.js';
 
@@ -478,9 +478,40 @@ async function show(path, { oldSnapshot } = {}) {
   if (!tab) return;
   const seq = ++showSeq;
 
+  const fileUrl = '/api/file?path=' + encodeURIComponent(path);
+
+  const media = mediaKind(path);
+  if (media) {
+    // Media (video/image/audio) streams straight from the server URL — never
+    // fetch the bytes here (files can be hundreds of MB). A HEAD request just
+    // confirms the file still exists so missing tabs behave like other types.
+    let head;
+    try {
+      head = await fetch(fileUrl, { method: 'HEAD' });
+    } catch (err) {
+      if (seq !== showSeq) return;
+      contentEl.innerHTML = '<p class="empty">Cannot reach the server.</p>';
+      tocEl.innerHTML = '';
+      return;
+    }
+    if (seq !== showSeq) return;
+    if (head.status === 404) {
+      tab.missing = true;
+      renderTabs();
+      contentEl.innerHTML = '<p class="empty">This file no longer exists.</p>';
+      tocEl.innerHTML = '';
+      return;
+    }
+    tab.missing = false;
+    tocEl.innerHTML = '';
+    contentEl.innerHTML = '';
+    renderMedia(media, fileUrl, path.split('/').pop(), contentEl);
+    return;
+  }
+
   let res;
   try {
-    res = await fetch('/api/file?path=' + encodeURIComponent(path));
+    res = await fetch(fileUrl);
   } catch (err) {
     if (seq !== showSeq) return;
     contentEl.innerHTML = '<p class="empty">Cannot reach the server.</p>';

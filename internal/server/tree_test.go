@@ -187,3 +187,28 @@ func TestListDir_FilesCarryModTime(t *testing.T) {
 		}
 	}
 }
+
+func TestListDir_ListsMediaFiles(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "clip.mp4"))
+	writeFile(t, filepath.Join(root, "Anim.WEBM"))
+	writeFile(t, filepath.Join(root, "photo.jpeg"))
+	writeFile(t, filepath.Join(root, "icon.svg"))
+	writeFile(t, filepath.Join(root, "voice.mp3"))
+	writeFile(t, filepath.Join(root, "notes.md"))
+	writeFile(t, filepath.Join(root, "ignore.txt"))
+
+	nodes, err := ListDir(root, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, n := range nodes {
+		names = append(names, n.Name)
+	}
+	// files sorted case-insensitively; ignore.txt excluded
+	want := []string{"Anim.WEBM", "clip.mp4", "icon.svg", "notes.md", "photo.jpeg", "voice.mp3"}
+	if !reflect.DeepEqual(names, want) {
+		t.Fatalf("got %v want %v", names, want)
+	}
+}

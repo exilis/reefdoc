@@ -325,3 +325,129 @@ func TestHandleFile_NoDownloadParamOmitsContentDisposition(t *testing.T) {
 		t.Fatalf("Content-Disposition should be absent for inline requests, got %q", cd)
 	}
 }
+
+func TestHandleFile_MediaContentTypeByExtension(t *testing.T) {
+	root := t.TempDir()
+	files := map[string]string{
+		"v.mp4":  "video/mp4",
+		"v.webm": "video/webm",
+		"v.MOV":  "video/quicktime",
+		"i.png":  "image/png",
+		"i.jpg":  "image/jpeg",
+		"i.jpeg": "image/jpeg",
+		"i.gif":  "image/gif",
+		"i.webp": "image/webp",
+		"i.svg":  "image/svg+xml",
+		"a.wav":  "audio/wav",
+		"a.mp3":  "audio/mpeg",
+	}
+	for name := range files {
+		if err := os.WriteFile(filepath.Join(root, name), []byte("media-bytes"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	s := New(root, NewBroker(), fstest.MapFS{}, nil)
+	for name, wantCT := range files {
+		rec := httptest.NewRecorder()
+		s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/file?path="+name, nil))
+		if rec.Code != 200 {
+			t.Fatalf("%s: status %d", name, rec.Code)
+		}
+		if ct := rec.Header().Get("Content-Type"); ct != wantCT {
+			t.Fatalf("%s: content-type %q, want %q", name, ct, wantCT)
+		}
+		if rec.Body.String() != "media-bytes" {
+			t.Fatalf("%s: body %q", name, rec.Body.String())
+		}
+	}
+}
+
+func TestHandleFile_MediaSupportsRangeRequests(t *testing.T) {
+	root := t.TempDir()
+	// 100 known bytes so range offsets are easy to assert.
+	raw := make([]byte, 100)
+	for i := range raw {
+		raw[i] = byte(i)
+	}
+	if err := os.WriteFile(filepath.Join(root, "clip.mp4"), raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := New(root, NewBroker(), fstest.MapFS{}, nil)
+
+	// Full GET advertises byte-range support.
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/file?path=clip.mp4", nil))
+	if rec.Code != 200 {
+		t.Fatalf("status %d", rec.Code)
+	}
+	if ar := rec.Header().Get("Accept-Ranges"); ar != "bytes" {
+		t.Fatalf("Accept-Ranges %q, want %q", ar, "bytes")
+	}
+
+	// A Range request gets 206 with exactly the requested slice.
+	req := httptest.NewRequest(http.MethodGet, "/api/file?path=clip.mp4", nil)
+	req.Header.Set("Range", "bytes=10-19")
+	rec = httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, req)
+	if rec.Code != http.StatusPartialContent {
+		t.Fatalf("status %d, want 206", rec.Code)
+	}
+	if cr := rec.Header().Get("Content-Range"); cr != "bytes 10-19/100" {
+		t.Fatalf("Content-Range %q, want %q", cr, "bytes 10-19/100")
+	}
+	if !bytes.Equal(rec.Body.Bytes(), raw[10:20]) {
+		t.Fatalf("body %v, want %v", rec.Body.Bytes(), raw[10:20])
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "video/mp4" {
+		t.Fatalf("content-type %q, want video/mp4", ct)
+	}
+}
+
+func TestHandleFile_MediaHeadRequest(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "pic.png"), []byte("pngbytes"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := New(root, NewBroker(), fstest.MapFS{}, nil)
+
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodHead, "/api/file?path=pic.png", nil))
+	if rec.Code != 200 {
+		t.Fatalf("status %d", rec.Code)
+	}
+	if rec.Body.Len() != 0 {
+		t.Fatalf("HEAD body %d bytes, want 0", rec.Body.Len())
+	}
+
+	rec = httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodHead, "/api/file?path=missing.png", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("missing: status %d, want 404", rec.Code)
+	}
+}
+
+func TestHandleFile_MediaMissingIs404(t *testing.T) {
+	s, _ := newTestServer(t)
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/file?path=nope.mp4", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status %d, want 404", rec.Code)
+	}
+}
+
+func TestHandleFile_MediaDownloadSetsContentDisposition(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "song.mp3"), []byte("mp3"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := New(root, NewBroker(), fstest.MapFS{}, nil)
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/file?path=song.mp3&download=1", nil))
+	if rec.Code != 200 {
+		t.Fatalf("status %d", rec.Code)
+	}
+	want := `attachment; filename="song.mp3"`
+	if cd := rec.Header().Get("Content-Disposition"); cd != want {
+		t.Fatalf("Content-Disposition %q, want %q", cd, want)
+	}
+}

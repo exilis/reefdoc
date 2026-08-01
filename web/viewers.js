@@ -42,6 +42,51 @@ export function isBinaryDoc(path) {
   return getViewer(path) !== null;
 }
 
+// --- media (video / image / audio) ---
+// Media is NOT a binary-doc viewer: the client never fetches media bytes.
+// The native element streams straight from the server URL, which supports
+// HTTP Range requests, so multi-hundred-MB videos play and seek fine.
+const mediaKinds = {
+  '.mp4': 'video', '.webm': 'video', '.mov': 'video',
+  '.png': 'image', '.jpg': 'image', '.jpeg': 'image',
+  '.gif': 'image', '.webp': 'image', '.svg': 'image',
+  '.wav': 'audio', '.mp3': 'audio',
+};
+
+// mediaKind returns 'video' | 'image' | 'audio' for media paths, else null.
+export function mediaKind(path) {
+  return mediaKinds[ext(path)] || null;
+}
+
+// isMedia reports whether a path is a media file reefdoc plays inline.
+export function isMedia(path) {
+  return mediaKind(path) !== null;
+}
+
+// renderMedia mounts the native element for a media file into container:
+// <video controls> / <img> / <audio controls>, streaming from src.
+export function renderMedia(kind, src, name, container) {
+  const doc = container.ownerDocument;
+  const wrap = doc.createElement('div');
+  wrap.className = 'media-doc media-' + kind;
+  let el;
+  if (kind === 'video') {
+    el = doc.createElement('video');
+    el.controls = true;
+    el.preload = 'metadata';
+  } else if (kind === 'audio') {
+    el = doc.createElement('audio');
+    el.controls = true;
+    el.preload = 'metadata';
+  } else {
+    el = doc.createElement('img');
+    el.alt = name;
+  }
+  el.src = src;
+  wrap.appendChild(el);
+  container.appendChild(wrap);
+}
+
 // --- viewers (implemented in later tasks) ---
 
 async function viewPdf(bytes, container) {
