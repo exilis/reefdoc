@@ -171,3 +171,11 @@ test('jsonNode renders an empty object as bare braces without a toggle', () => {
   assert.equal(head.children[0].className, 'json-punct');
   assert.equal(head.children[0].textContent, '{}');
 });
+
+test('jsonPrimitiveText renders newlines in strings as real line breaks', () => {
+  const r = jsonPrimitiveText('line1\nline2');
+  assert.equal(r.cls, 'json-string json-multiline');
+  assert.equal(r.text, '"line1\nline2"'); // real newline, still quoted
+  // quotes/backslashes stay escaped even in multiline
+  assert.equal(jsonPrimitiveText('a\n"b"\\c').text, '"a\n\\"b\\"\\\\c"');
+});

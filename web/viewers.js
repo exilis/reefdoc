@@ -233,7 +233,18 @@ function jsonText(doc, s, cls) {
 export function jsonPrimitiveText(value) {
   if (value === null) return { cls: 'json-null', text: 'null' };
   switch (typeof value) {
-    case 'string': return { cls: 'json-string', text: JSON.stringify(value) };
+    case 'string':
+      // A string with embedded newlines is shown across real lines (the
+      // container is white-space: pre-wrap) so long multi-line values like a
+      // message body are readable — quotes/backslashes are still escaped so the
+      // string stays unambiguous. Single-line strings use JSON.stringify as-is.
+      if (value.includes('\n')) {
+        return {
+          cls: 'json-string json-multiline',
+          text: '"' + value.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"',
+        };
+      }
+      return { cls: 'json-string', text: JSON.stringify(value) };
     case 'number': return { cls: 'json-number', text: String(value) };
     case 'boolean': return { cls: 'json-boolean', text: String(value) };
     default: return { cls: 'json-unknown', text: String(value) };
