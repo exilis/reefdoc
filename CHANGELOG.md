@@ -5,6 +5,26 @@ All notable changes to reefdoc are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **JSON viewing**: `.json` files now appear in the file-tree navigator and
+  render **pretty-printed** — 2-space indentation, trailing commas, and
+  colour-coded keys / typed primitives, exactly like `JSON.stringify(x, null,
+  2)` — with objects and arrays additionally collapsible via a ▾/▸ toggle. No
+  external library — the viewer decodes and parses the file client-side, and
+  falls back to raw text for invalid JSON. Files are served with
+  `Content-Type: application/json`.
+
+### Fixed
+- Embedded frontend assets (`app.js`, `viewers.js`, `app.css`, …) are now served
+  with `Cache-Control: no-cache` so a redeploy is picked up immediately. They
+  previously carried no cache validators (embed.FS has no modtime/ETag), so a
+  browser or CDN could serve a stale frontend after an update.
+- The frontend is also served under a versioned path (`/v2/`) using relative
+  asset refs, so it can be reached at a URL a CDN has never cached — an escape
+  hatch when a stale CDN copy of `/app.js` can't be purged from the host.
+
 ## [0.15.0] - 2026-08-01
 
 ### Added

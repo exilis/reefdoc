@@ -212,3 +212,22 @@ func TestListDir_ListsMediaFiles(t *testing.T) {
 		t.Fatalf("got %v want %v", names, want)
 	}
 }
+
+func TestListDir_ListsJSON(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "config.json"))
+	writeFile(t, filepath.Join(root, "notes.md"))
+
+	nodes, err := ListDir(root, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, n := range nodes {
+		names = append(names, n.Name)
+	}
+	want := []string{"config.json", "notes.md"}
+	if !reflect.DeepEqual(names, want) {
+		t.Fatalf("got %v want %v", names, want)
+	}
+}
