@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with `Cache-Control: no-cache` so a redeploy is picked up immediately. They
   previously carried no cache validators (embed.FS has no modtime/ETag), so a
   browser or CDN could serve a stale frontend after an update.
+- The frontend is also served under a versioned path (`/v2/`) using relative
+  asset refs, so it can be reached at a URL a CDN has never cached — an escape
+  hatch when a stale CDN copy of `/app.js` can't be purged from the host.
 
 ## [0.15.0] - 2026-08-01
 

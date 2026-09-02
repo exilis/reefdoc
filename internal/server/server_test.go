@@ -456,3 +456,15 @@ func TestHandleFile_MediaDownloadSetsContentDisposition(t *testing.T) {
 		t.Fatalf("Content-Disposition %q, want %q", cd, want)
 	}
 }
+
+func TestHandleAssets_VersionedMirror(t *testing.T) {
+	s, _ := newTestServer(t)
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v2/", nil))
+	if rec.Code != 200 || rec.Body.String() != "<p>app</p>" {
+		t.Fatalf("/v2/ status %d body %q", rec.Code, rec.Body.String())
+	}
+	if got := rec.Header().Get("Cache-Control"); got != "no-cache" {
+		t.Fatalf("/v2/ Cache-Control = %q, want no-cache", got)
+	}
+}

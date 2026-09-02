@@ -30,7 +30,15 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/file", s.handleFile)
 	mux.HandleFunc("/api/watch", s.handleWatch)
 	mux.HandleFunc("/api/events", s.handleEvents)
-	mux.Handle("/", noCacheAssets(http.FileServer(http.FS(s.assets))))
+	assetHandler := noCacheAssets(http.FileServer(http.FS(s.assets)))
+	mux.Handle("/", assetHandler)
+	// Versioned mirror of the same frontend. index.html uses relative asset
+	// refs, so serving it under /v2/ makes the whole module graph resolve to
+	// /v2/* — a set of URLs a CDN has never cached. This is the escape hatch
+	// when a CDN holds stale /app.js etc. that cannot be purged from here:
+	// open the app at /v2/ to fetch a guaranteed-fresh copy. Bump the prefix
+	// again if a future stale-cache incident needs another clean URL.
+	mux.Handle("/v2/", http.StripPrefix("/v2", assetHandler))
 	return mux
 }
 
