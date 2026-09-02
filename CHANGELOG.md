@@ -9,9 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **JSON viewing**: `.json` files now appear in the file-tree navigator and
-  render as a collapsible, syntax-highlighted tree (object keys, array indices,
-  and typed primitives are colour-coded; objects/arrays fold via a ▾/▸ toggle).
-  No external library — the viewer decodes and parses the file client-side, and
+  render **pretty-printed** — 2-space indentation, trailing commas, and
+  colour-coded keys / typed primitives, exactly like `JSON.stringify(x, null,
+  2)` — with objects and arrays additionally collapsible via a ▾/▸ toggle. No
+  external library — the viewer decodes and parses the file client-side, and
   falls back to raw text for invalid JSON. Files are served with
   `Content-Type: application/json`.
 

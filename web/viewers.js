@@ -217,7 +217,7 @@ async function viewJson(bytes, container) {
     return;
   }
 
-  wrap.appendChild(jsonNode(doc, data, null, false));
+  wrap.appendChild(jsonNode(doc, data, null, true));
 }
 
 // jsonText makes a <span class=cls> with textContent s.
@@ -240,11 +240,14 @@ export function jsonPrimitiveText(value) {
   }
 }
 
-// jsonNode builds the DOM for one JSON value. Objects and arrays render as a
-// collapsible block (▾/▸ toggle); primitives as a type-coloured span. keyLabel
-// (or null for the root) is the property name / array index shown before the
-// value; isIndex distinguishes an array index from an object key.
-export function jsonNode(doc, value, keyLabel, isIndex) {
+// jsonNode builds the DOM for one JSON value, laid out like `JSON.stringify(x,
+// null, 2)`: 2-space indentation (via nesting), a "key": prefix for object
+// members, no index prefix for array elements, and a trailing comma on every
+// item except the last. Objects and arrays are additionally collapsible (a ▾/▸
+// toggle folds them to `{…}` / `[…]`); primitives render as a type-coloured
+// span. keyLabel is the object key (rendered quoted) or null for array elements
+// and the root; isLast omits the trailing comma on the final sibling.
+export function jsonNode(doc, value, keyLabel, isLast) {
   const node = doc.createElement('div');
   node.className = 'json-node';
   const head = doc.createElement('div');
@@ -253,11 +256,14 @@ export function jsonNode(doc, value, keyLabel, isIndex) {
 
   const isArr = Array.isArray(value);
   const isObj = value !== null && typeof value === 'object';
+  // Array elements carry no key; object members carry their key string.
   const entries = isObj
-    ? (isArr ? value.map((v, i) => [String(i), v, true]) : Object.entries(value).map(([k, v]) => [k, v, false]))
+    ? (isArr ? value.map((v) => [null, v]) : Object.entries(value))
     : [];
 
-  // Collapse toggle comes first, before the key, for object/array values.
+  const comma = (line) => { if (!isLast) line.appendChild(jsonText(doc, ',', 'json-punct')); };
+
+  // Collapse toggle comes first, before the key, for non-empty objects/arrays.
   let toggle = null;
   if (isObj && entries.length > 0) {
     toggle = doc.createElement('span');
@@ -269,13 +275,14 @@ export function jsonNode(doc, value, keyLabel, isIndex) {
   }
 
   if (keyLabel !== null) {
-    head.appendChild(jsonText(doc, isIndex ? keyLabel : JSON.stringify(keyLabel), isIndex ? 'json-index' : 'json-key'));
+    head.appendChild(jsonText(doc, JSON.stringify(keyLabel), 'json-key'));
     head.appendChild(jsonText(doc, ': ', 'json-punct'));
   }
 
   if (!isObj) {
     const p = jsonPrimitiveText(value);
     head.appendChild(jsonText(doc, p.text, p.cls));
+    comma(head);
     return node;
   }
 
@@ -283,22 +290,27 @@ export function jsonNode(doc, value, keyLabel, isIndex) {
   const close = isArr ? ']' : '}';
   if (entries.length === 0) {
     head.appendChild(jsonText(doc, open + close, 'json-punct'));
+    comma(head);
     return node;
   }
 
   head.appendChild(jsonText(doc, open, 'json-punct'));
-  const summary = jsonText(doc, ' … ' + entries.length + (isArr ? ' items ' : ' keys ') + close, 'json-summary');
+  const summary = jsonText(doc, ' … ' + close, 'json-summary');
   summary.hidden = true;
   head.appendChild(summary);
+  const summaryComma = jsonText(doc, ',', 'json-punct');
+  summaryComma.hidden = true;
+  if (!isLast) head.appendChild(summaryComma);
 
   const kids = doc.createElement('div');
   kids.className = 'json-children';
-  for (const [k, v, idx] of entries) kids.appendChild(jsonNode(doc, v, k, idx));
+  entries.forEach(([k, v], i) => kids.appendChild(jsonNode(doc, v, k, i === entries.length - 1)));
   node.appendChild(kids);
 
   const closer = doc.createElement('div');
   closer.className = 'json-line json-closer';
   closer.appendChild(jsonText(doc, close, 'json-punct'));
+  comma(closer);
   node.appendChild(closer);
 
   let collapsed = false;
@@ -308,6 +320,7 @@ export function jsonNode(doc, value, keyLabel, isIndex) {
     kids.hidden = c;
     closer.hidden = c;
     summary.hidden = !c;
+    summaryComma.hidden = !c;
   };
   toggle.addEventListener('click', () => setCollapsed(!collapsed));
   toggle.addEventListener('keydown', (e) => {

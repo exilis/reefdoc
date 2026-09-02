@@ -125,16 +125,24 @@ function fakeDoc() {
   return { createElement: makeEl };
 }
 
-test('jsonNode renders a primitive with its type class', () => {
-  const n = jsonNode(fakeDoc(), 42, null, false);
+test('jsonNode renders a primitive with its type class (no comma when last)', () => {
+  const n = jsonNode(fakeDoc(), 42, null, true);
   const head = n.children[0];
   const span = head.children[head.children.length - 1];
   assert.equal(span.className, 'json-number');
   assert.equal(span.textContent, '42');
 });
 
+test('jsonNode appends a trailing comma when the item is not the last sibling', () => {
+  const n = jsonNode(fakeDoc(), 42, null, false);
+  const head = n.children[0];
+  const last = head.children[head.children.length - 1];
+  assert.equal(last.className, 'json-punct');
+  assert.equal(last.textContent, ',');
+});
+
 test('jsonNode renders an object with a leading toggle and a quoted key', () => {
-  const n = jsonNode(fakeDoc(), { name: 'x' }, null, false);
+  const n = jsonNode(fakeDoc(), { name: 'x' }, null, true);
   const head = n.children[0];
   assert.equal(head.children[0].className, 'json-toggle');
   const kids = n.children.find((c) => c.className === 'json-children');
@@ -144,16 +152,21 @@ test('jsonNode renders an object with a leading toggle and a quoted key', () => 
   assert.equal(keySpan.textContent, '"name"');
 });
 
-test('jsonNode renders an array item with a dimmed index', () => {
-  const n = jsonNode(fakeDoc(), [true], null, false);
+test('jsonNode renders array elements with no index prefix, comma-separated', () => {
+  const n = jsonNode(fakeDoc(), [true, false], null, true);
   const kids = n.children.find((c) => c.className === 'json-children');
-  const childHead = kids.children[0].children[0];
-  const idx = childHead.children.find((s) => s.className === 'json-index');
-  assert.equal(idx.textContent, '0');
+  const firstHead = kids.children[0].children[0];
+  // no key/index label on array elements
+  assert.equal(firstHead.children.find((s) => s.className === 'json-index'), undefined);
+  assert.equal(firstHead.children.find((s) => s.className === 'json-key'), undefined);
+  // first element (not last) ends with a comma; last does not
+  assert.equal(firstHead.children[firstHead.children.length - 1].textContent, ',');
+  const secondHead = kids.children[1].children[0];
+  assert.equal(secondHead.children[secondHead.children.length - 1].textContent, 'false');
 });
 
 test('jsonNode renders an empty object as bare braces without a toggle', () => {
-  const n = jsonNode(fakeDoc(), {}, null, false);
+  const n = jsonNode(fakeDoc(), {}, null, true);
   const head = n.children[0];
   assert.equal(head.children[0].className, 'json-punct');
   assert.equal(head.children[0].textContent, '{}');
