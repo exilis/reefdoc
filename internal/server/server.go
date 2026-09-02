@@ -30,8 +30,21 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/file", s.handleFile)
 	mux.HandleFunc("/api/watch", s.handleWatch)
 	mux.HandleFunc("/api/events", s.handleEvents)
-	mux.Handle("/", http.FileServer(http.FS(s.assets)))
+	mux.Handle("/", noCacheAssets(http.FileServer(http.FS(s.assets))))
 	return mux
+}
+
+// noCacheAssets makes the browser (and any CDN in front) revalidate the
+// embedded frontend before reusing it. embed.FS files carry no useful modtime
+// or ETag, so http.FileServer sends no cache validators at all — a caching
+// layer then serves a stale app.js / viewers.js after a redeploy (exactly what
+// hid the JSON viewer until a manual hard-refresh). "no-cache" still allows
+// storage but forces revalidation, so a new build is picked up immediately.
+func noCacheAssets(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		h.ServeHTTP(w, r)
+	})
 }
 
 // handleTree lists one directory level (immediate children of ?path=, root by

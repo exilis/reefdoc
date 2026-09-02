@@ -72,6 +72,11 @@ func TestHandleAssets_ServesIndex(t *testing.T) {
 	if rec.Code != 200 || rec.Body.String() != "<p>app</p>" {
 		t.Fatalf("status %d body %q", rec.Code, rec.Body.String())
 	}
+	// Embedded assets must be revalidated so a redeploy isn't hidden behind a
+	// stale browser/CDN cache.
+	if got := rec.Header().Get("Cache-Control"); got != "no-cache" {
+		t.Fatalf("Cache-Control = %q, want no-cache", got)
+	}
 }
 
 func TestHandleFile_SymlinkEscapeIs400(t *testing.T) {

@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   falls back to raw text for invalid JSON. Files are served with
   `Content-Type: application/json`.
 
+### Fixed
+- Embedded frontend assets (`app.js`, `viewers.js`, `app.css`, …) are now served
+  with `Cache-Control: no-cache` so a redeploy is picked up immediately. They
+  previously carried no cache validators (embed.FS has no modtime/ETag), so a
+  browser or CDN could serve a stale frontend after an update.
+
 ## [0.15.0] - 2026-08-01
 
 ### Added
