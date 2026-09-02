@@ -30,6 +30,7 @@ const registry = {
   '.docx': viewDocx,
   '.xlsx': viewXlsx,
   '.pptx': viewPptx,
+  '.json': viewJson,
 };
 
 // getViewer returns the viewer function for a path, or null for text/unknown.
@@ -186,4 +187,131 @@ async function viewPptx(bytes, container) {
     refit();
   });
   ro.observe(container);
+}
+
+// --- JSON (pretty, syntax-highlighted, collapsible) ---
+// Not a CDN-backed viewer: JSON needs no library. Decodes the raw bytes,
+// parses, and builds a collapsible, syntax-coloured tree. Invalid JSON falls
+// back to the raw text (best-effort, per the viewer contract at the top).
+async function viewJson(bytes, container) {
+  const doc = container.ownerDocument;
+  container.innerHTML = '';
+  const text = new TextDecoder('utf-8').decode(bytes);
+  const wrap = doc.createElement('div');
+  wrap.className = 'json-doc';
+  container.appendChild(wrap);
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (err) {
+    wrap.className = 'json-doc json-invalid';
+    const note = doc.createElement('p');
+    note.className = 'json-error';
+    note.textContent = 'Invalid JSON (' + err.message + ') — showing raw text.';
+    const pre = doc.createElement('pre');
+    pre.className = 'json-raw';
+    pre.textContent = text;
+    wrap.appendChild(note);
+    wrap.appendChild(pre);
+    return;
+  }
+
+  wrap.appendChild(jsonNode(doc, data, null, false));
+}
+
+// jsonText makes a <span class=cls> with textContent s.
+function jsonText(doc, s, cls) {
+  const el = doc.createElement('span');
+  el.className = cls;
+  el.textContent = s;
+  return el;
+}
+
+// jsonPrimitiveText maps a JSON primitive to its display class + text. Pure
+// (no DOM) so the type/colour mapping is unit-testable on its own.
+export function jsonPrimitiveText(value) {
+  if (value === null) return { cls: 'json-null', text: 'null' };
+  switch (typeof value) {
+    case 'string': return { cls: 'json-string', text: JSON.stringify(value) };
+    case 'number': return { cls: 'json-number', text: String(value) };
+    case 'boolean': return { cls: 'json-boolean', text: String(value) };
+    default: return { cls: 'json-unknown', text: String(value) };
+  }
+}
+
+// jsonNode builds the DOM for one JSON value. Objects and arrays render as a
+// collapsible block (▾/▸ toggle); primitives as a type-coloured span. keyLabel
+// (or null for the root) is the property name / array index shown before the
+// value; isIndex distinguishes an array index from an object key.
+export function jsonNode(doc, value, keyLabel, isIndex) {
+  const node = doc.createElement('div');
+  node.className = 'json-node';
+  const head = doc.createElement('div');
+  head.className = 'json-line';
+  node.appendChild(head);
+
+  const isArr = Array.isArray(value);
+  const isObj = value !== null && typeof value === 'object';
+  const entries = isObj
+    ? (isArr ? value.map((v, i) => [String(i), v, true]) : Object.entries(value).map(([k, v]) => [k, v, false]))
+    : [];
+
+  // Collapse toggle comes first, before the key, for object/array values.
+  let toggle = null;
+  if (isObj && entries.length > 0) {
+    toggle = doc.createElement('span');
+    toggle.className = 'json-toggle';
+    toggle.setAttribute('role', 'button');
+    toggle.tabIndex = 0;
+    toggle.textContent = '▾';
+    head.appendChild(toggle);
+  }
+
+  if (keyLabel !== null) {
+    head.appendChild(jsonText(doc, isIndex ? keyLabel : JSON.stringify(keyLabel), isIndex ? 'json-index' : 'json-key'));
+    head.appendChild(jsonText(doc, ': ', 'json-punct'));
+  }
+
+  if (!isObj) {
+    const p = jsonPrimitiveText(value);
+    head.appendChild(jsonText(doc, p.text, p.cls));
+    return node;
+  }
+
+  const open = isArr ? '[' : '{';
+  const close = isArr ? ']' : '}';
+  if (entries.length === 0) {
+    head.appendChild(jsonText(doc, open + close, 'json-punct'));
+    return node;
+  }
+
+  head.appendChild(jsonText(doc, open, 'json-punct'));
+  const summary = jsonText(doc, ' … ' + entries.length + (isArr ? ' items ' : ' keys ') + close, 'json-summary');
+  summary.hidden = true;
+  head.appendChild(summary);
+
+  const kids = doc.createElement('div');
+  kids.className = 'json-children';
+  for (const [k, v, idx] of entries) kids.appendChild(jsonNode(doc, v, k, idx));
+  node.appendChild(kids);
+
+  const closer = doc.createElement('div');
+  closer.className = 'json-line json-closer';
+  closer.appendChild(jsonText(doc, close, 'json-punct'));
+  node.appendChild(closer);
+
+  let collapsed = false;
+  const setCollapsed = (c) => {
+    collapsed = c;
+    toggle.textContent = c ? '▸' : '▾';
+    kids.hidden = c;
+    closer.hidden = c;
+    summary.hidden = !c;
+  };
+  toggle.addEventListener('click', () => setCollapsed(!collapsed));
+  toggle.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCollapsed(!collapsed); }
+  });
+  return node;
 }

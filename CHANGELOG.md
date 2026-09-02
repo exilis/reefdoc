@@ -5,6 +5,16 @@ All notable changes to reefdoc are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **JSON viewing**: `.json` files now appear in the file-tree navigator and
+  render as a collapsible, syntax-highlighted tree (object keys, array indices,
+  and typed primitives are colour-coded; objects/arrays fold via a ▾/▸ toggle).
+  No external library — the viewer decodes and parses the file client-side, and
+  falls back to raw text for invalid JSON. Files are served with
+  `Content-Type: application/json`.
+
 ## [0.15.0] - 2026-08-01
 
 ### Added

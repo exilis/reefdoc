@@ -185,6 +185,8 @@ func contentType(path string) string {
 		return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 	case ".pptx":
 		return "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+	case ".json":
+		return "application/json; charset=utf-8"
 	default:
 		return "text/plain; charset=utf-8"
 	}

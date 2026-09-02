@@ -37,15 +37,16 @@ func isMedia(name string) bool {
 
 // isViewable reports whether a file should appear in the tree: the text
 // formats reefdoc renders inline, the binary document formats it previews
-// client-side (pdf/docx/xlsx/pptx), and the media formats it streams
-// (video/image/audio). It also gates live-reload "change" events
-// (see watcher.go), so narrowing it affects both tree listing and auto-update.
+// client-side (pdf/docx/xlsx/pptx), JSON (rendered as a collapsible tree), and
+// the media formats it streams (video/image/audio). It also gates live-reload
+// "change" events (see watcher.go), so narrowing it affects both tree listing
+// and auto-update.
 func isViewable(name string) bool {
 	if isMarkdown(name) || isMedia(name) {
 		return true
 	}
 	switch strings.ToLower(filepath.Ext(name)) {
-	case ".pdf", ".docx", ".xlsx", ".pptx":
+	case ".pdf", ".docx", ".xlsx", ".pptx", ".json":
 		return true
 	}
 	return false
