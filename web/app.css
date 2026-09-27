@@ -139,6 +139,16 @@ body[data-theme="dark"] .allium-block--contract { border-left-color:#a97ee8; }
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 .media-doc audio { width: min(100%, 480px); }
+/* Shown in place of a video/audio element the browser cannot decode. */
+.media-error { text-align: center; color: var(--fg-muted, inherit); }
+.media-error a {
+  display: inline-block;
+  margin: 8px 0;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.media-error-hint { font-size: 0.85em; opacity: 0.8; }
 /* PPTX: render at a base size, scale to fit the pane (both dimensions). */
 .pptx-fit { position: relative; overflow: hidden; }
 .pptx-stage { transform-origin: top left; }

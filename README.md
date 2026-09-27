@@ -41,8 +41,10 @@ go build -o reefdoc . && ./reefdoc ./docs
 - GitHub-flavored markdown, code syntax highlighting, and mermaid diagrams
 - [Allium](https://allium.dev) spec files (`.allium`) rendered as formatted cards
 - Preview PDF, DOCX, XLSX, and PPTX files in the browser (rendered client-side)
-- Play videos (MP4/WebM/MOV), view images (PNG/JPEG/GIF/WebP/SVG), and
-  listen to audio (WAV/MP3) inline — streamed with HTTP Range support
+- Play videos (MP4/WebM/MOV, plus MKV where the browser supports Matroska —
+  Chromium family), view images (PNG/JPEG/GIF/WebP/SVG), and listen to audio
+  (WAV/MP3) inline — streamed with HTTP Range support; unplayable
+  container/codec combinations show a clear message with a download link
 - Download the open document (its original file) with one click
 - Auto table of contents from document headings
 - Dark / light theme (mermaid follows the theme)

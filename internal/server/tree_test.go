@@ -195,6 +195,7 @@ func TestListDir_ListsMediaFiles(t *testing.T) {
 	writeFile(t, filepath.Join(root, "photo.jpeg"))
 	writeFile(t, filepath.Join(root, "icon.svg"))
 	writeFile(t, filepath.Join(root, "voice.mp3"))
+	writeFile(t, filepath.Join(root, "render.mkv"))
 	writeFile(t, filepath.Join(root, "notes.md"))
 	writeFile(t, filepath.Join(root, "ignore.txt"))
 
@@ -207,7 +208,7 @@ func TestListDir_ListsMediaFiles(t *testing.T) {
 		names = append(names, n.Name)
 	}
 	// files sorted case-insensitively; ignore.txt excluded
-	want := []string{"Anim.WEBM", "clip.mp4", "icon.svg", "notes.md", "photo.jpeg", "voice.mp3"}
+	want := []string{"Anim.WEBM", "clip.mp4", "icon.svg", "notes.md", "photo.jpeg", "render.mkv", "voice.mp3"}
 	if !reflect.DeepEqual(names, want) {
 		t.Fatalf("got %v want %v", names, want)
 	}

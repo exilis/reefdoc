@@ -5,6 +5,19 @@ All notable changes to reefdoc are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `.mkv` (Matroska) videos are now listed in the tree and served as
+  `video/x-matroska` with HTTP Range streaming. Browsers that demux Matroska
+  natively (the Chromium family, codecs permitting) play them inline.
+- Honest fallback for unplayable media: when a `<video>`/`<audio>` element
+  fails to load or decode (unsupported container **or** codec — e.g. `.mkv`
+  in Firefox/Safari, or an HEVC `.mov` in Chromium), the player is replaced
+  by a clear message naming the file, a download link, and a conversion hint
+  — instead of a dead black player. Containers no browser plays natively
+  (`.avi`, `.wmv`, `.flv`) remain deliberately excluded from the tree.
+
 ## [0.15.1] - 2026-09-27
 
 ### Security
