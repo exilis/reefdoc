@@ -5,6 +5,16 @@ All notable changes to reefdoc are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+- `/api/tree` and `/api/watch` now refuse directories the tree hides: hidden
+  and `node_modules` directories (the `.worktrees` exception and the
+  dot-directory allowlist still apply), and symlinks that resolve to such a
+  directory or outside the root. Previously the names inside a hidden
+  directory could be listed, and changes in it observed, by asking for the
+  directory by path. File contents were already protected since 0.15.1.
+
 ## [0.16.0] - 2026-09-27
 
 ### Added

@@ -213,3 +213,60 @@ func TestListDir_ListsMediaFiles(t *testing.T) {
 		t.Fatalf("got %v want %v", names, want)
 	}
 }
+
+func TestListDir_OnlyListsDirectoriesTheTreeWouldShow(t *testing.T) {
+	cases := []struct {
+		name    string
+		relDir  string
+		wantErr bool
+	}{
+		{"plain dir", "docs", false},
+		{"allowlisted dot dir", ".claude", false},
+		{"hidden dir under a worktree", ".worktrees/w/.github", false},
+		{"hidden dir", ".ssh", true},
+		{"dir nested under hidden dir", "a/.secrets/b", true},
+		{"node_modules", "node_modules/pkg", true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			root := t.TempDir()
+			writeFile(t, filepath.Join(root, filepath.FromSlash(c.relDir), "notes.md"))
+			nodes, err := ListDir(root, c.relDir)
+			if c.wantErr {
+				if err == nil {
+					t.Fatalf("ListDir(%q) listed %d nodes, want error", c.relDir, len(nodes))
+				}
+				return
+			}
+			if err != nil || len(nodes) != 1 {
+				t.Fatalf("ListDir(%q) = %d nodes, err %v; want 1 node", c.relDir, len(nodes), err)
+			}
+		})
+	}
+}
+
+func TestListDir_RejectsSymlinkToUnlistableDir(t *testing.T) {
+	root := t.TempDir()
+	outside := t.TempDir()
+	writeFile(t, filepath.Join(root, ".ssh", "notes.md"))
+	writeFile(t, filepath.Join(outside, "notes.md"))
+	writeFile(t, filepath.Join(root, "docs", "notes.md"))
+	links := map[string]string{
+		"to-hidden":  filepath.Join(root, ".ssh"),
+		"to-outside": outside,
+		"to-docs":    filepath.Join(root, "docs"),
+	}
+	for name, target := range links {
+		if err := os.Symlink(target, filepath.Join(root, name)); err != nil {
+			t.Skip("symlinks unsupported")
+		}
+	}
+	for _, name := range []string{"to-hidden", "to-outside"} {
+		if nodes, err := ListDir(root, name); err == nil {
+			t.Fatalf("ListDir(%q) listed %d nodes, want error", name, len(nodes))
+		}
+	}
+	if nodes, err := ListDir(root, "to-docs"); err != nil || len(nodes) != 1 {
+		t.Fatalf("ListDir(to-docs) = %d nodes, err %v; want 1 node", len(nodes), err)
+	}
+}

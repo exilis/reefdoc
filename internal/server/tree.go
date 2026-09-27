@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"sort"
@@ -85,17 +86,15 @@ func isUnfiltered(relDir string) bool {
 	return false
 }
 
-// isServable reports whether the file at rel (relative to root) is one the
-// tree would list: a viewable file with no noise directory on its path.
-// /api/file enforces it so that a path the tree hides cannot be fetched by
-// guessing it. Under ".worktrees" directories are unfiltered, as in ListDir.
-func isServable(rel string) bool {
-	rel = filepath.ToSlash(filepath.Clean(rel))
-	if !isViewable(rel) {
-		return false
+// isListableDir reports whether the directory at relDir (relative to root;
+// "" means the root) is one the tree would show: no noise directory on its
+// path. Under ".worktrees" directories are unfiltered, as in ListDir.
+func isListableDir(relDir string) bool {
+	relDir = filepath.ToSlash(filepath.Clean(relDir))
+	if relDir == "." {
+		return true
 	}
-	segs := strings.Split(rel, "/")
-	for _, seg := range segs[:len(segs)-1] {
+	for _, seg := range strings.Split(relDir, "/") {
 		if seg == ".worktrees" {
 			return true
 		}
@@ -106,14 +105,55 @@ func isServable(rel string) bool {
 	return true
 }
 
+// isServable reports whether the file at rel (relative to root) is one the
+// tree would list: a viewable file in a listable directory. /api/file
+// enforces it so that a path the tree hides cannot be fetched by guessing it.
+func isServable(rel string) bool {
+	rel = filepath.ToSlash(filepath.Clean(rel))
+	return isViewable(rel) && isListableDir(filepath.Dir(rel))
+}
+
+// ErrNotListable means the requested directory is one the tree hides.
+var ErrNotListable = errors.New("directory is not listable")
+
+// listableDir resolves relDir against root like SafeJoin, and additionally
+// requires the directory, and whatever it resolves to through symlinks, to be
+// one the tree would show.
+func listableDir(root, relDir string) (string, error) {
+	abs, err := SafeJoin(root, relDir)
+	if err != nil {
+		return "", err
+	}
+	if !isListableDir(relDir) {
+		return "", ErrNotListable
+	}
+	resolved, err := filepath.EvalSymlinks(abs)
+	if err != nil {
+		return abs, nil // missing directory: let the caller's read fail
+	}
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		return "", err
+	}
+	relResolved, err := filepath.Rel(resolveRoot(absRoot), resolved)
+	if err != nil || relResolved == ".." || strings.HasPrefix(relResolved, ".."+string(filepath.Separator)) {
+		return "", ErrUnsafePath
+	}
+	if !isListableDir(relResolved) {
+		return "", ErrNotListable
+	}
+	return abs, nil
+}
+
 // ListDir returns the immediate children (non-noise directories and viewable
 // files) of the directory at relDir (relative to root; "" means the root).
+// A directory the tree hides is rejected with ErrNotListable.
 // Under ".worktrees" every directory is listed — see isUnfiltered.
 // It does NOT recurse — directory nodes carry no children, so callers list
 // deeper levels on demand. Directories come first, then files, each group
 // sorted case-insensitively by name.
 func ListDir(root, relDir string) ([]*Node, error) {
-	absDir, err := SafeJoin(root, relDir)
+	absDir, err := listableDir(root, relDir)
 	if err != nil {
 		return nil, err
 	}
