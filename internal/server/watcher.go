@@ -42,13 +42,14 @@ func NewWatcher(root string, broker *Broker) (*Watcher, error) {
 }
 
 // SetWatches reconciles the watched set to exactly the root plus the given
-// relative directories. Directories that escape the root are ignored.
+// relative directories. Directories that escape the root, or that the tree
+// hides, are ignored.
 // Previously-watched directories no longer requested are unwatched; the root
 // is always kept.
 func (w *Watcher) SetWatches(relDirs []string) {
 	target := map[string]bool{w.root: true}
 	for _, d := range relDirs {
-		if abs, err := SafeJoin(w.root, d); err == nil {
+		if abs, err := listableDir(w.root, d); err == nil {
 			target[abs] = true
 		}
 	}

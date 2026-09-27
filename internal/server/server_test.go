@@ -511,3 +511,18 @@ func TestHandleFile_RejectsViewableSymlinkToNonViewableTarget(t *testing.T) {
 		t.Fatalf("status %d, want 404", rec.Code)
 	}
 }
+
+func TestHandleTree_HiddenDirIsNotFound(t *testing.T) {
+	s, root := newTestServer(t)
+	if err := os.MkdirAll(filepath.Join(root, ".ssh"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".ssh", "notes.md"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/tree?path=.ssh", nil))
+	if rec.Code != 404 {
+		t.Fatalf("status %d, want 404; body %s", rec.Code, rec.Body.String())
+	}
+}

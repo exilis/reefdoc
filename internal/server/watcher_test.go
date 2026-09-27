@@ -149,3 +149,30 @@ func TestWatcher_TreeEventCarriesDir(t *testing.T) {
 		return m["type"] == "tree" && m["path"] == "sub"
 	})
 }
+
+func TestWatcher_SetWatchesIgnoresHiddenDir(t *testing.T) {
+	root := t.TempDir()
+	hidden := filepath.Join(root, ".ssh")
+	if err := os.MkdirAll(hidden, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	b := NewBroker()
+	w, err := NewWatcher(root, b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go w.Run()
+	defer w.Close()
+	w.SetWatches([]string{".ssh"})
+	sub := b.Subscribe()
+
+	time.Sleep(50 * time.Millisecond)
+	if err := os.WriteFile(filepath.Join(hidden, "notes.md"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case raw := <-sub:
+		t.Fatalf("got event %s for a hidden directory, want none", raw)
+	case <-time.After(400 * time.Millisecond):
+	}
+}
