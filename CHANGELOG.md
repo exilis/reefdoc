@@ -5,7 +5,7 @@ All notable changes to reefdoc are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.16.1] - 2026-09-27
 
 ### Security
 - `/api/tree` and `/api/watch` now refuse directories the tree hides: hidden
@@ -199,6 +199,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   via an on-demand filesystem watcher scoped to the visible tree.
 - Path-traversal-safe file serving and a `--version` flag.
 
+[0.16.1]: https://github.com/exilis/reefdoc/releases/tag/v0.16.1
 [0.16.0]: https://github.com/exilis/reefdoc/releases/tag/v0.16.0
 [0.15.1]: https://github.com/exilis/reefdoc/releases/tag/v0.15.1
 [0.15.0]: https://github.com/exilis/reefdoc/releases/tag/v0.15.0
