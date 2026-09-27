@@ -47,7 +47,7 @@ export function isBinaryDoc(path) {
 // The native element streams straight from the server URL, which supports
 // HTTP Range requests, so multi-hundred-MB videos play and seek fine.
 const mediaKinds = {
-  '.mp4': 'video', '.webm': 'video', '.mov': 'video',
+  '.mp4': 'video', '.webm': 'video', '.mov': 'video', '.mkv': 'video',
   '.png': 'image', '.jpg': 'image', '.jpeg': 'image',
   '.gif': 'image', '.webp': 'image', '.svg': 'image',
   '.wav': 'audio', '.mp3': 'audio',
@@ -65,6 +65,12 @@ export function isMedia(path) {
 
 // renderMedia mounts the native element for a media file into container:
 // <video controls> / <img> / <audio controls>, streaming from src.
+//
+// Support varies by container AND codec (canPlayType lies about both — Chrome
+// returns '' for video/x-matroska yet plays it), so video/audio attempt
+// playback and fall back on the element's error event: the browser that can
+// play the file just plays it, the one that can't gets an explanation and a
+// download link instead of a dead player.
 export function renderMedia(kind, src, name, container) {
   const doc = container.ownerDocument;
   const wrap = doc.createElement('div');
@@ -81,6 +87,27 @@ export function renderMedia(kind, src, name, container) {
   } else {
     el = doc.createElement('img');
     el.alt = name;
+  }
+  if (kind !== 'image') {
+    el.addEventListener('error', () => {
+      const msg = doc.createElement('div');
+      msg.className = 'media-error';
+      const p = doc.createElement('p');
+      p.textContent = "Your browser can't play " + name +
+        ' — it does not support this container or codec.';
+      const a = doc.createElement('a');
+      a.href = src + '&download=1';
+      a.textContent = 'Download ' + name;
+      const hint = doc.createElement('p');
+      hint.className = 'media-error-hint';
+      hint.textContent = kind === 'video'
+        ? 'To view it here, convert it to MP4 (H.264/AAC) or WebM.'
+        : 'To play it here, convert it to MP3 or WAV.';
+      msg.appendChild(p);
+      msg.appendChild(a);
+      msg.appendChild(hint);
+      wrap.replaceChildren(msg);
+    });
   }
   el.src = src;
   wrap.appendChild(el);

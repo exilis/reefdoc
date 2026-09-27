@@ -26,7 +26,7 @@ test('isBinaryDoc mirrors getViewer', () => {
 
 test('mediaKind maps every media extension to its kind', () => {
   const cases = {
-    'a.mp4': 'video', 'b.webm': 'video', 'c.mov': 'video',
+    'a.mp4': 'video', 'b.webm': 'video', 'c.mov': 'video', 'l.mkv': 'video',
     'd.png': 'image', 'e.jpg': 'image', 'f.jpeg': 'image',
     'g.gif': 'image', 'h.webp': 'image', 'i.svg': 'image',
     'j.wav': 'audio', 'k.mp3': 'audio',
@@ -56,12 +56,16 @@ test('media files are NOT binary docs (bytes must never be fetched)', () => {
   }
 });
 
-// Minimal DOM stand-in: enough for renderMedia (createElement/appendChild).
+// Minimal DOM stand-in: enough for renderMedia (createElement/appendChild,
+// plus the event listeners and replaceChildren the error fallback uses).
 function fakeContainer() {
   const makeEl = (tagName) => ({
     tagName,
     children: [],
+    listeners: {},
     appendChild(c) { this.children.push(c); },
+    replaceChildren(...nodes) { this.children = nodes; },
+    addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); },
   });
   const doc = { createElement: makeEl };
   const container = makeEl('div');
@@ -96,4 +100,38 @@ test('renderMedia builds an <audio controls>', () => {
   const el = container.children[0].children[0];
   assert.equal(el.tagName, 'audio');
   assert.equal(el.controls, true);
+});
+
+test('a video that fails to load is replaced by a message with a download link', () => {
+  const container = fakeContainer();
+  renderMedia('video', '/api/file?path=render.mkv', 'render.mkv', container);
+  const wrap = container.children[0];
+  const el = wrap.children[0];
+  assert.ok(el.listeners.error, 'video must listen for load/decode errors');
+
+  el.listeners.error[0]();
+
+  assert.equal(wrap.children.length, 1);
+  const msg = wrap.children[0];
+  assert.equal(msg.className, 'media-error');
+  const p = msg.children.find((c) => c.tagName === 'p');
+  assert.ok(p.textContent.includes('render.mkv'), 'message names the file');
+  const a = msg.children.find((c) => c.tagName === 'a');
+  assert.equal(a.href, '/api/file?path=render.mkv&download=1');
+});
+
+test('audio gets the same error fallback as video', () => {
+  const container = fakeContainer();
+  renderMedia('audio', '/api/file?path=song.mp3', 'song.mp3', container);
+  const el = container.children[0].children[0];
+  assert.ok(el.listeners.error);
+  el.listeners.error[0]();
+  assert.equal(container.children[0].children[0].className, 'media-error');
+});
+
+test('images do not get the media error fallback', () => {
+  const container = fakeContainer();
+  renderMedia('image', '/api/file?path=shot.png', 'shot.png', container);
+  const el = container.children[0].children[0];
+  assert.equal(el.listeners.error, undefined);
 });

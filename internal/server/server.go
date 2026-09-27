@@ -174,6 +174,8 @@ func mediaContentType(path string) (string, bool) {
 		return "video/webm", true
 	case ".mov":
 		return "video/quicktime", true
+	case ".mkv":
+		return "video/x-matroska", true
 	case ".png":
 		return "image/png", true
 	case ".jpg", ".jpeg":

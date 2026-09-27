@@ -332,6 +332,7 @@ func TestHandleFile_MediaContentTypeByExtension(t *testing.T) {
 		"v.mp4":  "video/mp4",
 		"v.webm": "video/webm",
 		"v.MOV":  "video/quicktime",
+		"v.mkv":  "video/x-matroska",
 		"i.png":  "image/png",
 		"i.jpg":  "image/jpeg",
 		"i.jpeg": "image/jpeg",

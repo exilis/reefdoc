@@ -25,9 +25,15 @@ func isMarkdown(name string) bool {
 // isMedia reports whether a file is a media format reefdoc streams to the
 // browser's native <video>/<img>/<audio> elements. Media files are served
 // with HTTP Range support and are never buffered whole (see server.go).
+//
+// A container belongs here only if at least one major browser can play it
+// natively (reefdoc never transcodes); browsers that can't get a clear
+// fallback message client-side (see renderMedia in web/viewers.js). That is
+// why .mkv is listed (Chromium demuxes Matroska) but .avi/.wmv/.flv are not:
+// no browser plays those, so offering a player would fail for everyone.
 func isMedia(name string) bool {
 	switch strings.ToLower(filepath.Ext(name)) {
-	case ".mp4", ".webm", ".mov",
+	case ".mp4", ".webm", ".mov", ".mkv",
 		".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg",
 		".wav", ".mp3":
 		return true
