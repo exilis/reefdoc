@@ -451,3 +451,62 @@ func TestHandleFile_MediaDownloadSetsContentDisposition(t *testing.T) {
 		t.Fatalf("Content-Disposition %q, want %q", cd, want)
 	}
 }
+
+// fileStatus writes content at rel under a fresh root (creating parents) and
+// returns the /api/file status for reqPath.
+func fileStatus(t *testing.T, rel, reqPath string) int {
+	t.Helper()
+	s, root := newTestServer(t)
+	abs := filepath.Join(root, filepath.FromSlash(rel))
+	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(abs, []byte("content"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet,
+		"/api/file?path="+url.QueryEscape(reqPath), nil))
+	return rec.Code
+}
+
+func TestHandleFile_OnlyServesWhatTheTreeWouldList(t *testing.T) {
+	cases := []struct {
+		name string
+		rel  string
+		want int
+	}{
+		{"markdown at root", "doc.md", 200},
+		{"markdown in allowlisted dot dir", ".claude/notes.md", 200},
+		{"markdown in hidden dir under a worktree", ".worktrees/w/.github/x.md", 200},
+		{"dotenv file", ".env", 404},
+		{"non-viewable extension", "sub/secret.txt", 404},
+		{"private key", "keys/id.pem", 404},
+		{"markdown in hidden dir", ".ssh/notes.md", 404},
+		{"markdown nested under hidden dir", "a/.secrets/b/notes.md", 404},
+		{"markdown in node_modules", "node_modules/pkg/README.md", 404},
+		{"non-viewable file under a worktree", ".worktrees/w/.env", 404},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := fileStatus(t, c.rel, c.rel); got != c.want {
+				t.Fatalf("GET %s: status %d, want %d", c.rel, got, c.want)
+			}
+		})
+	}
+}
+
+func TestHandleFile_RejectsViewableSymlinkToNonViewableTarget(t *testing.T) {
+	s, root := newTestServer(t)
+	if err := os.WriteFile(filepath.Join(root, "secret.env"), []byte("KEY=1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(root, "secret.env"), filepath.Join(root, "link.md")); err != nil {
+		t.Skip("symlinks unsupported")
+	}
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/file?path=link.md", nil))
+	if rec.Code != 404 {
+		t.Fatalf("status %d, want 404", rec.Code)
+	}
+}

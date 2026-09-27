@@ -5,6 +5,15 @@ All notable changes to reefdoc are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+- `/api/file` now serves only files the tree would list: viewable types, with
+  no hidden or `node_modules` directory on the path (the `.worktrees`
+  exception still applies). Previously any file under the root could be
+  fetched by path, including dotfiles such as `.env`. Symlinks that resolve
+  to a non-listable file are rejected as well. Rejected paths answer 404.
+
 ## [0.15.0] - 2026-08-01
 
 ### Added

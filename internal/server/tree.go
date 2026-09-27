@@ -79,6 +79,27 @@ func isUnfiltered(relDir string) bool {
 	return false
 }
 
+// isServable reports whether the file at rel (relative to root) is one the
+// tree would list: a viewable file with no noise directory on its path.
+// /api/file enforces it so that a path the tree hides cannot be fetched by
+// guessing it. Under ".worktrees" directories are unfiltered, as in ListDir.
+func isServable(rel string) bool {
+	rel = filepath.ToSlash(filepath.Clean(rel))
+	if !isViewable(rel) {
+		return false
+	}
+	segs := strings.Split(rel, "/")
+	for _, seg := range segs[:len(segs)-1] {
+		if seg == ".worktrees" {
+			return true
+		}
+		if isNoiseDir(seg) {
+			return false
+		}
+	}
+	return true
+}
+
 // ListDir returns the immediate children (non-noise directories and viewable
 // files) of the directory at relDir (relative to root; "" means the root).
 // Under ".worktrees" every directory is listed — see isUnfiltered.
