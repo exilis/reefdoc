@@ -60,10 +60,21 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad path", http.StatusBadRequest)
 		return
 	}
+	// Serve only what the tree would list. Answer 404, not 403, so a hidden
+	// file's existence is not revealed.
+	if !isServable(r.URL.Query().Get("path")) {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
 	if resolved, err := filepath.EvalSymlinks(abs); err == nil {
 		absRoot, _ := filepath.Abs(s.root)
 		if resolved != absRoot && !strings.HasPrefix(resolved, absRoot+string(filepath.Separator)) {
 			http.Error(w, "bad path", http.StatusBadRequest)
+			return
+		}
+		// A symlink must not reach a file the tree would hide.
+		if relResolved, err := filepath.Rel(resolveRoot(absRoot), resolved); err != nil || !isServable(relResolved) {
+			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 		abs = resolved
@@ -92,6 +103,15 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
 	}
 	_, _ = w.Write(data)
+}
+
+// resolveRoot returns absRoot with symlinks resolved, so that paths returned
+// by filepath.EvalSymlinks can be made relative to it.
+func resolveRoot(absRoot string) string {
+	if r, err := filepath.EvalSymlinks(absRoot); err == nil {
+		return r
+	}
+	return absRoot
 }
 
 // handleWatch reconciles the watcher's directory set to the posted list of

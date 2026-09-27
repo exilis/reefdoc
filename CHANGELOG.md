@@ -5,6 +5,15 @@ All notable changes to reefdoc are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.1] - 2026-09-27
+
+### Security
+- `/api/file` now serves only files the tree would list: viewable types, with
+  no hidden or `node_modules` directory on the path (the `.worktrees`
+  exception still applies). Previously any file under the root could be
+  fetched by path, including dotfiles such as `.env`. Symlinks that resolve
+  to a non-listable file are rejected as well. Rejected paths answer 404.
+
 ## [0.15.0] - 2026-08-01
 
 ### Added
@@ -167,6 +176,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   via an on-demand filesystem watcher scoped to the visible tree.
 - Path-traversal-safe file serving and a `--version` flag.
 
+[0.15.1]: https://github.com/exilis/reefdoc/releases/tag/v0.15.1
 [0.15.0]: https://github.com/exilis/reefdoc/releases/tag/v0.15.0
 [0.14.0]: https://github.com/exilis/reefdoc/releases/tag/v0.14.0
 [0.13.0]: https://github.com/exilis/reefdoc/releases/tag/v0.13.0
