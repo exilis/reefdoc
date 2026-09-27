@@ -10,10 +10,10 @@ files change on disk.
 
 You edit markdown in your own editor; `reefdoc` is the preview.
 
-> **Latest release: [v0.15.1](https://github.com/exilis/reefdoc/releases/tag/v0.15.1).**
-> Recent highlights: **security fix** — `/api/file` now serves only files the
-> tree would list, so dotfiles and hidden directories under the root can no
-> longer be fetched by path.
+> **Latest release: [v0.16.0](https://github.com/exilis/reefdoc/releases/tag/v0.16.0).**
+> Recent highlights: **MKV support** and an honest fallback for unplayable
+> media — a video or audio file the browser cannot decode now shows a clear
+> message with a download link instead of a dead player.
 > Full history in the [changelog](CHANGELOG.md).
 
 ```bash
